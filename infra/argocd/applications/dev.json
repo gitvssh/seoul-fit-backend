@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "name": "seoul-fit-backend-dev",
+  "environment": "dev",
+  "targetRevision": "main",
+  "sourcePath": "infra/k8s/seoul-fit-backend/overlays/dev",
+  "namespace": "seoul-fit-dev",
+  "syncClass": "manual"
+}

@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/ci.yml"
+      - "build.gradle"
+      - "settings.gradle"
+      - "gradle/**"
+      - "gradlew"
+      - "src/**"
+      - "infra/argocd/**"
+      - "infra/k8s/**"
+      - "infra/scripts/validate_argocd_registration.py"
+      - "sonar-project.properties"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/ci.yml"
+      - "build.gradle"
+      - "settings.gradle"
+      - "gradle/**"
+      - "gradlew"
+      - "src/**"
+      - "infra/argocd/**"
+      - "infra/k8s/**"
+      - "infra/scripts/validate_argocd_registration.py"
+      - "sonar-project.properties"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: seoul-fit-backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  LANG: C.UTF-8
+  LC_ALL: C.UTF-8
+
+jobs:
+  quality:
+    name: Test and coverage
+    runs-on: homelab-seoul-fit-backend
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with: {persist-credentials: false, fetch-depth: 1}
+      - uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+      - name: Test and generate the JaCoCo baseline
+        # The repository's dormant 70% whole-code verification currently
+        # measures about 31%. Keep that target intact, publish the real report
+        # to Sonar, and let the new-code gate prevent further regression.
+        run: ./gradlew test jacocoTestReport --no-daemon
+
+  manifests:
+    name: GitOps contract and overlays
+    runs-on: homelab-seoul-fit-backend
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with: {persist-credentials: false, fetch-depth: 1}
+      - uses: azure/setup-kubectl@829323503d1be3d00ca8346e5391ca0b07a9ab0d # v5.1.0
+      - run: python3 infra/scripts/validate_argocd_registration.py
+      - run: kubectl kustomize infra/k8s/seoul-fit-backend/overlays/dev >/dev/null
+      - run: kubectl kustomize infra/k8s/seoul-fit-backend/overlays/prod >/dev/null
+
+  sonar:
+    name: SonarQube quality gate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [quality, manifests]
+    runs-on: homelab-seoul-fit-backend
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with: {persist-credentials: false, fetch-depth: 0}
+      - uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+      - name: Rebuild scanner inputs
+        run: ./gradlew test jacocoTestReport --no-daemon
+      - name: Scan and wait for the quality gate
+        uses: SonarSource/sonarqube-scan-action@7006c4492b2e0ee0f816d36501671557c97f5995 # v8.1.0
+        with:
+          skipSignatureVerification: true
+        env:
+          SONAR_SCANNER_JAVA_OPTS: "-Xmx3g"
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}

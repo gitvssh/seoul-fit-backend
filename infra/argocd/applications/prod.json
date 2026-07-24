@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "name": "seoul-fit-backend-prod",
+  "environment": "prod",
+  "targetRevision": "main",
+  "sourcePath": "infra/k8s/seoul-fit-backend/overlays/prod",
+  "namespace": "seoul-fit-prod",
+  "syncClass": "manual"
+}
