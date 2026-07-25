@@ -45,8 +45,7 @@ public class CulturalEventTriggerStrategy implements TriggerStrategy {
     
     @Override
     public TriggerResult evaluate(TriggerContext context) {
-        log.debug("문화행사 기반 트리거 평가 시작: userId={}, location=[{}, {}]", 
-                context.getUser().getId(), context.getUserLatitude(), context.getUserLongitude());
+        log.debug("문화행사 기반 트리거 평가 시작: userId={}", context.getUser().getId());
         
         // 사용자가 문화시설에 관심이 있는지 확인
         if (!context.getUserInterests().contains(InterestCategory.CULTURE)) {
@@ -137,7 +136,7 @@ public class CulturalEventTriggerStrategy implements TriggerStrategy {
             
             return events;
         } catch (Exception e) {
-            log.error("주변 문화행사 조회 중 오류 발생: lat={}, lng={}", latitude, longitude, e);
+            log.error("주변 문화행사 조회 중 오류 발생", e);
             return List.of();
         }
     }

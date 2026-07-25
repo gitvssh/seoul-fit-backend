@@ -45,8 +45,8 @@ public class AdvancedLocationDataService {
     public AdvancedLocationData findAdvancedLocationData(Double latitude, Double longitude, 
                                                         MapScale mapScale, List<String> interests, 
                                                         Integer maxResults) {
-        log.info("고도화된 위치 데이터 조회 시작: lat={}, lng={}, scale={}, interests={}, maxResults={}", 
-                latitude, longitude, mapScale.getDisplayName(), interests, maxResults);
+        log.info("고도화된 위치 데이터 조회 시작: scale={}, interests={}, maxResults={}",
+                mapScale.getDisplayName(), interests, maxResults);
 
         long startTime = System.currentTimeMillis();
 

@@ -84,10 +84,18 @@ class SecurityTestSuite {
     }
 
     @Test
-    @DisplayName("클러스터 내부 관리자 배치 경로는 인증 없이 라우팅")
-    void testInternalAdminBatchPathPermitted() throws Exception {
+    @DisplayName("관리자 배치 경로는 인증 없이 접근할 수 없음")
+    void testInternalAdminBatchPathRequiresAuthentication() throws Exception {
         mockMvc.perform(post("/api/admin/batch/not-supported/run"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    @DisplayName("일반 사용자도 관리자 배치 경로에 접근할 수 없음")
+    void testInternalAdminBatchPathDeniedForUsers() throws Exception {
+        mockMvc.perform(post("/api/admin/batch/not-supported/run"))
+                .andExpect(status().isForbidden());
     }
     
     @Test
@@ -114,13 +122,13 @@ class SecurityTestSuite {
     void testRateLimiting() throws Exception {
         // 인증 엔드포인트는 분당 10회 제한
         for (int i = 0; i < 10; i++) {
-            mockMvc.perform(post("/api/auth/login")
+            mockMvc.perform(post("/api/auth/oauth/login")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{\"username\":\"test\",\"password\":\"test\"}"));
         }
         
         // 11번째 요청은 차단
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post("/api/auth/oauth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"username\":\"test\",\"password\":\"test\"}"))
                 .andExpect(status().isTooManyRequests())

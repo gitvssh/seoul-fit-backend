@@ -3,6 +3,8 @@ package com.seoulfit.backend.shared.security.encryption;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.Cipher;
@@ -44,6 +46,7 @@ public class DataEncryptionService {
     
     private SecretKey secretKey;
     private final SecureRandom secureRandom = new SecureRandom();
+    private final Environment environment;
 
     /**
      * 암호화 키 초기화
@@ -55,14 +58,16 @@ public class DataEncryptionService {
                 byte[] decodedKey = Base64.getDecoder().decode(encryptionKeyBase64);
                 secretKey = new SecretKeySpec(decodedKey, "AES");
             } else {
+                if (environment.acceptsProfiles(Profiles.of("prod"))) {
+                    throw new EncryptionException(
+                            "app.security.encryption.key is required in production", null);
+                }
                 // 새 키 생성 (개발 환경용)
                 try {
                     KeyGenerator keyGenerator = KeyGenerator.getInstance("AES");
                     keyGenerator.init(256);
                     secretKey = keyGenerator.generateKey();
                     log.warn("Generated new encryption key. For production, set app.security.encryption.key");
-                    log.debug("Generated key (Base64): {}", 
-                            Base64.getEncoder().encodeToString(secretKey.getEncoded()));
                 } catch (Exception e) {
                     throw new EncryptionException("Failed to generate encryption key", e);
                 }

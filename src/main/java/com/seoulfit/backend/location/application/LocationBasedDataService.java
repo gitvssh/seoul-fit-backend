@@ -42,7 +42,7 @@ public class LocationBasedDataService {
      * 위치 기반 맛집 조회
      */
     public List<Restaurant> findNearbyRestaurants(Double latitude, Double longitude, Double radiusKm) {
-        log.debug("위치 기반 맛집 조회: lat={}, lng={}, radius={}km", latitude, longitude, radiusKm);
+        log.debug("위치 기반 맛집 조회: radius={}km", radiusKm);
         
         if (latitude == null || longitude == null) {
             log.warn("위치 정보가 없어 빈 목록 반환");
@@ -60,7 +60,7 @@ public class LocationBasedDataService {
      * 위치 기반 도서관 조회
      */
     public List<Library> findNearbyLibraries(Double latitude, Double longitude, Double radiusKm) {
-        log.debug("위치 기반 도서관 조회: lat={}, lng={}, radius={}km", latitude, longitude, radiusKm);
+        log.debug("위치 기반 도서관 조회: radius={}km", radiusKm);
         
         if (latitude == null || longitude == null) {
             log.warn("위치 정보가 없어 빈 목록 반환");
@@ -78,7 +78,7 @@ public class LocationBasedDataService {
      * 위치 기반 공원 조회
      */
     public List<Park> findNearbyParks(Double latitude, Double longitude, Double radiusKm) {
-        log.debug("위치 기반 공원 조회: lat={}, lng={}, radius={}km", latitude, longitude, radiusKm);
+        log.debug("위치 기반 공원 조회: radius={}km", radiusKm);
         
         if (latitude == null || longitude == null) {
             log.warn("위치 정보가 없어 빈 목록 반환");
@@ -96,7 +96,7 @@ public class LocationBasedDataService {
      * 위치 기반 체육시설 조회
      */
     public List<SportsFacility> findNearbySportsFacilities(Double latitude, Double longitude, Double radiusKm) {
-        log.debug("위치 기반 체육시설 조회: lat={}, lng={}, radius={}km", latitude, longitude, radiusKm);
+        log.debug("위치 기반 체육시설 조회: radius={}km", radiusKm);
         
         if (latitude == null || longitude == null) {
             log.warn("위치 정보가 없어 빈 목록 반환");
@@ -114,7 +114,7 @@ public class LocationBasedDataService {
      * 위치 기반 무더위쉼터 조회
      */
     public List<CoolingCenter> findNearbyCoolingCenters(Double latitude, Double longitude, Double radiusKm) {
-        log.debug("위치 기반 무더위쉼터 조회: lat={}, lng={}, radius={}km", latitude, longitude, radiusKm);
+        log.debug("위치 기반 무더위쉼터 조회: radius={}km", radiusKm);
         
         if (latitude == null || longitude == null) {
             log.warn("위치 정보가 없어 빈 목록 반환");
@@ -132,7 +132,7 @@ public class LocationBasedDataService {
      * 위치 기반 통합 데이터 조회
      */
     public LocationBasedData findNearbyData(Double latitude, Double longitude, Double radiusKm) {
-        log.debug("위치 기반 통합 데이터 조회: lat={}, lng={}, radius={}km", latitude, longitude, radiusKm);
+        log.debug("위치 기반 통합 데이터 조회: radius={}km", radiusKm);
 
         return LocationBasedData.builder()
                 .restaurants(findNearbyRestaurants(latitude, longitude, radiusKm))
@@ -151,8 +151,8 @@ public class LocationBasedDataService {
      */
     public LocationBasedData findNearbyDataByInterests(Double latitude, Double longitude, 
                                                       Double radiusKm, List<String> interests) {
-        log.debug("관심사별 위치 기반 데이터 조회: lat={}, lng={}, radius={}km, interests={}", 
-                latitude, longitude, radiusKm, interests);
+        log.debug("관심사별 위치 기반 데이터 조회: radius={}km, interests={}",
+                radiusKm, interests);
 
         LocationBasedData.LocationBasedDataBuilder builder = LocationBasedData.builder()
                 .latitude(latitude)

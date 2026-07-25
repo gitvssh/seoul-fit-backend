@@ -38,14 +38,26 @@ public class NotificationService implements ManageNotificationUseCase {
     @Override
     @Transactional
     public NotificationHistoryResult createNotification(CreateNotificationCommand command) {
-        NotificationHistory notificationHistory = NotificationHistory.create(
-                command.userId(),
-                command.getNotificationType(),
-                command.title(),
-                command.message(),
-                command.triggerCondition(),
-                command.locationInfo()
-        );
+        NotificationHistory notificationHistory = command.subscriptionId() == null
+                ? NotificationHistory.create(
+                        command.userId(),
+                        command.getNotificationType(),
+                        command.title(),
+                        command.message(),
+                        command.triggerCondition(),
+                        command.locationInfo())
+                : NotificationHistory.createInApp(
+                        command.userId(),
+                        command.getNotificationType(),
+                        command.title(),
+                        command.message(),
+                        command.triggerCondition(),
+                        command.locationInfo(),
+                        command.subscriptionId(),
+                        command.reason(),
+                        command.deepLink(),
+                        command.dataObservedAt(),
+                        command.dedupKey());
 
         NotificationHistory savedNotification = notificationHistoryPort.save(notificationHistory);
         log.info("알림 생성 완료: userId={}, type={}, title={}",

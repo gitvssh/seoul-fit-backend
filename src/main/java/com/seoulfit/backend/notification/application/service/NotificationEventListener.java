@@ -38,13 +38,19 @@ public class NotificationEventListener {
         
         try {
             // 알림 히스토리 생성
-            CreateNotificationCommand command = CreateNotificationCommand.of(
+            CreateNotificationCommand command = CreateNotificationCommand.inApp(
                     event.getUserId(),
                     event.getType(),
                     event.getTitle(),
                     event.getMessage(),
                     event.getTriggerCondition(),
-                    event.getLocationInfo()
+                    event.getLocationInfo(),
+                    event.getPriority(),
+                    event.getSubscriptionId(),
+                    event.getReason(),
+                    event.getDeepLink(),
+                    event.getDataObservedAt(),
+                    event.getDedupKey()
             );
             
             manageNotificationHistoryUseCase.createNotification(command);

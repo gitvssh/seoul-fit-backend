@@ -52,8 +52,7 @@ public class TriggerEvaluationService implements EvaluateTriggerUseCase {
     @Override
     @Transactional
     public TriggerEvaluationResult evaluateLocationBasedTriggers(LocationTriggerCommand command) {
-        log.info("위치 기반 트리거 평가 시작: userId={}, location=[{}, {}]",
-                command.getUserId(), command.getLatitude(), command.getLongitude());
+        log.info("위치 기반 트리거 평가 시작: userId={}", command.getUserId());
 
         // 사용자 조회
         User user = userPort.findById(Long.valueOf(command.getUserId()))
@@ -156,7 +155,7 @@ public class TriggerEvaluationService implements EvaluateTriggerUseCase {
             // 실시간 공공 데이터 조회 (예: 날씨, 대기질, 따릉이 등)
             return publicDataApiClient.fetchRealtimeData(latitude, longitude);
         } catch (Exception e) {
-            log.warn("공공 API 데이터 조회 실패: lat={}, lng={}, error={}", latitude, longitude, e.getMessage());
+            log.warn("공공 API 데이터 조회 실패: error={}", e.getMessage());
             return Map.of();
         }
     }
@@ -204,8 +203,8 @@ public class TriggerEvaluationService implements EvaluateTriggerUseCase {
                 result.getTitle(),
                 result.getMessage(),
                 result.getLocationInfo(),
-                command.getLatitude(),
-                command.getLongitude(),
+                null,
+                null,
                 result.getPriority(),
                 metadata
         );
@@ -220,6 +219,11 @@ public class TriggerEvaluationService implements EvaluateTriggerUseCase {
                 .message(result.getMessage())
                 .locationInfo(result.getLocationInfo())
                 .priority(result.getPriority())
+                .subscriptionId(command.getSubscriptionId())
+                .reason(command.getReason())
+                .deepLink(command.getDeepLink())
+                .dataObservedAt(command.getDataObservedAt())
+                .dedupKey(command.getDedupKey())
                 .build();
         eventPublisher.publishEvent(event);
 

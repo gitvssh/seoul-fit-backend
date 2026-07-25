@@ -52,7 +52,7 @@ public class KakaoOAuthClient implements OAuthClient {
 
     @Override
     public OAuthTokenResponse exchangeCodeForToken(String authorizationCode, String redirectUri) {
-        log.info("Kakao 토큰 교환 시작: code={}", authorizationCode.substring(0, Math.min(10, authorizationCode.length())) + "...");
+        log.info("Kakao 토큰 교환 시작");
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
@@ -215,7 +215,7 @@ public class KakaoOAuthClient implements OAuthClient {
             }
         }
 
-        log.debug("추출된 사용자 정보 - ID: {}, 닉네임: {}, 이메일: {}", id, nickname, email);
+        log.debug("Kakao 사용자 정보 추출 완료");
 
         return OAuthUserInfo.builder()
                 .id(id)

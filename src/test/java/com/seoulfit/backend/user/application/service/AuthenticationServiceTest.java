@@ -7,7 +7,6 @@ import com.seoulfit.backend.user.domain.InterestCategory;
 import com.seoulfit.backend.user.domain.User;
 import com.seoulfit.backend.user.domain.UserStatus;
 import com.seoulfit.backend.user.domain.exception.OAuthUserAlreadyExistsException;
-import com.seoulfit.backend.user.domain.exception.OAuthUserNotFoundException;
 import com.seoulfit.backend.user.infrastructure.dto.OAuthTokenResponse;
 import com.seoulfit.backend.user.infrastructure.dto.OAuthUserInfo;
 import com.seoulfit.backend.user.infrastructure.jwt.JwtTokenProvider;
@@ -59,7 +58,6 @@ class AuthenticationServiceTest {
 
     private User testUser;
     private OAuthSignUpCommand signUpCommand;
-    private OAuthLoginCommand loginCommand;
     private OAuthAuthorizationCommand authCommand;
     private OAuthTokenResponse tokenResponse;
     private OAuthUserInfo userInfo;
@@ -86,12 +84,6 @@ class AuthenticationServiceTest {
                 .nickname("testuser")
                 .profileImageUrl("http://profile.jpg")
                 .interests(List.of(InterestCategory.CULTURE, InterestCategory.SPORTS))
-                .build();
-
-        // OAuth 로그인 명령
-        loginCommand = OAuthLoginCommand.builder()
-                .provider(AuthProvider.KAKAO)
-                .oauthUserId("kakao123")
                 .build();
 
         // OAuth Authorization Code 명령
@@ -315,66 +307,13 @@ class AuthenticationServiceTest {
     }
 
     @Test
-    @DisplayName("OAuth 로그인 (기존 방식) - 성공")
-    void oauthLogin_Legacy_Success() {
-        // given
-        when(userPort.findByProviderAndOauthUserId(AuthProvider.KAKAO, "kakao123"))
-                .thenReturn(Optional.of(testUser));
-        when(jwtTokenProvider.createAccessToken(1L, "test@example.com"))
-                .thenReturn("access_token");
-        when(jwtTokenProvider.createRefreshToken(1L))
-                .thenReturn("refresh_token");
-
-        // when
-        TokenResult result = authenticationService.oauthLogin(loginCommand);
-
-        // then
-        assertThat(result).isNotNull();
-        assertThat(result.getAccessToken()).isEqualTo("access_token");
-        assertThat(result.getUserId()).isEqualTo(1L);
-    }
-
-    @Test
-    @DisplayName("OAuth 로그인 (기존 방식) - 사용자 없음")
-    void oauthLogin_Legacy_UserNotFound() {
-        // given
-        when(userPort.findByProviderAndOauthUserId(AuthProvider.KAKAO, "kakao123"))
-                .thenReturn(Optional.empty());
-
-        // when & then
-        assertThatThrownBy(() -> authenticationService.oauthLogin(loginCommand))
-                .isInstanceOf(OAuthUserNotFoundException.class)
-                .hasMessage("OAuth 사용자를 찾을 수 없습니다.");
-    }
-
-    @Test
-    @DisplayName("OAuth 로그인 (기존 방식) - 비활성화된 계정")
-    void oauthLogin_Legacy_InactiveUser() {
-        // given
-        User inactiveUser = User.builder()
-                .email("test@example.com")
-                .nickname("testuser")
-                .oauthProvider(AuthProvider.KAKAO)
-                .oauthUserId("kakao123")
-                .status(UserStatus.INACTIVE)
-                .build();
-        setUserId(inactiveUser, 1L);
-
-        when(userPort.findByProviderAndOauthUserId(AuthProvider.KAKAO, "kakao123"))
-                .thenReturn(Optional.of(inactiveUser));
-
-        // when & then
-        assertThatThrownBy(() -> authenticationService.oauthLogin(loginCommand))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessage("비활성화된 계정입니다.");
-    }
-
-    @Test
     @DisplayName("토큰 갱신 - 성공")
     void refreshToken_Success() {
         // given
         String refreshToken = "valid_refresh_token";
         when(jwtTokenProvider.validateToken(refreshToken))
+                .thenReturn(true);
+        when(jwtTokenProvider.isRefreshToken(refreshToken))
                 .thenReturn(true);
         when(jwtTokenProvider.getUserIdFromToken(refreshToken))
                 .thenReturn(1L);
@@ -410,11 +349,25 @@ class AuthenticationServiceTest {
     }
 
     @Test
+    @DisplayName("토큰 갱신 - 액세스 토큰 재사용 거부")
+    void refreshToken_RejectsAccessToken() {
+        String accessToken = "valid_access_token";
+        when(jwtTokenProvider.validateToken(accessToken)).thenReturn(true);
+        when(jwtTokenProvider.isRefreshToken(accessToken)).thenReturn(false);
+
+        assertThatThrownBy(() -> authenticationService.refreshToken(accessToken))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("유효하지 않은 리프레시 토큰입니다.");
+    }
+
+    @Test
     @DisplayName("토큰 갱신 - 사용자 없음")
     void refreshToken_UserNotFound() {
         // given
         String refreshToken = "valid_refresh_token";
         when(jwtTokenProvider.validateToken(refreshToken))
+                .thenReturn(true);
+        when(jwtTokenProvider.isRefreshToken(refreshToken))
                 .thenReturn(true);
         when(jwtTokenProvider.getUserIdFromToken(refreshToken))
                 .thenReturn(999L);

@@ -9,6 +9,7 @@ import com.seoulfit.backend.user.domain.AuthProvider;
 import com.seoulfit.backend.user.domain.InterestCategory;
 import com.seoulfit.backend.user.domain.UserStatus;
 import com.seoulfit.backend.config.TestSecurityConfig;
+import com.seoulfit.backend.config.WithMockCustomUser;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +37,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 @ActiveProfiles("test")
 @Import(TestSecurityConfig.class)
+@WithMockCustomUser(id = 1L)
 @DisplayName("UserController 테스트")
 class UserControllerTest {
 
@@ -71,16 +73,11 @@ class UserControllerTest {
     @DisplayName("내 정보 조회 - 성공")
     void getMyInfo_Success() throws Exception {
         // given
-        String oauthUserId = "kakao123456";
-        String oauthProvider = "kakao";
         UserResult userResult = createTestUserResult(1L);
-        given(manageUserUseCase.getUserByOAuth(oauthUserId, AuthProvider.KAKAO))
-                .willReturn(userResult);
+        given(manageUserUseCase.getUser(1L)).willReturn(userResult);
 
         // when & then
         mockMvc.perform(get("/api/users/me")
-                .param("oauthUserId", oauthUserId)
-                .param("oauthProvider", oauthProvider)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -153,6 +150,7 @@ class UserControllerTest {
 
     @Test
     @DisplayName("사용자 조회 - 사용자 없음")
+    @WithMockCustomUser(id = 999L)
     void getUser_NotFound() throws Exception {
         // given
         Long userId = 999L;
@@ -167,13 +165,13 @@ class UserControllerTest {
     }
 
     @Test
-    @DisplayName("내 정보 조회 - 필수 파라미터 누락")
-    void getMyInfo_MissingParameters() throws Exception {
+    @DisplayName("다른 사용자 정보 조회 - 접근 거부")
+    void getUser_ForbiddenForDifferentOwner() throws Exception {
         // when & then
-        mockMvc.perform(get("/api/users/me")
+        mockMvc.perform(get("/api/users/{userId}", 2L)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isForbidden());
     }
 
     private UserResult createTestUserResult(Long userId) {

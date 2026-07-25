@@ -65,8 +65,7 @@ public class FacilitiesService implements CommandCoolingShelterUseCase {
     @Transactional(readOnly = true)
     @Override
     public List<CoolingCenter> getAmenitiesNearby(BigDecimal latitude, BigDecimal longitude, double radiusKm) {
-        log.info("Fetching amenities near location: lat={}, lon={}, radius={}km", 
-            latitude, longitude, radiusKm);
+        log.info("Fetching amenities near location: radius={}km", radiusKm);
         
 /*        try {
             // 전체 편의시설 조회 후 거리 기반 필터링

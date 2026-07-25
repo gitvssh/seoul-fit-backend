@@ -4,6 +4,7 @@ import com.seoulfit.backend.trigger.domain.TriggerCondition;
 import lombok.Builder;
 import lombok.Getter;
 import org.springframework.context.ApplicationEvent;
+import java.time.LocalDateTime;
 
 /**
  * 알림 이벤트 클래스입니다.
@@ -68,6 +69,11 @@ public class NotificationEvent extends ApplicationEvent {
      * 낮은 값일수록 높은 우선순위를 가집니다.
      */
     private final int priority;
+    private final Long subscriptionId;
+    private final String reason;
+    private final String deepLink;
+    private final LocalDateTime dataObservedAt;
+    private final String dedupKey;
     
     /**
      * NotificationEvent의 빌더 생성자입니다.
@@ -84,7 +90,8 @@ public class NotificationEvent extends ApplicationEvent {
     @Builder
     public NotificationEvent(Object source, Long userId, NotificationType type,
                            TriggerCondition triggerCondition, String title, String message,
-                           String locationInfo, int priority) {
+                           String locationInfo, int priority, Long subscriptionId, String reason,
+                           String deepLink, LocalDateTime dataObservedAt, String dedupKey) {
         super(source != null ? source : "system");
         this.userId = userId;
         this.type = type;
@@ -93,6 +100,11 @@ public class NotificationEvent extends ApplicationEvent {
         this.message = message;
         this.locationInfo = locationInfo;
         this.priority = priority;
+        this.subscriptionId = subscriptionId;
+        this.reason = reason;
+        this.deepLink = deepLink;
+        this.dataObservedAt = dataObservedAt;
+        this.dedupKey = dedupKey;
     }
     
     /**

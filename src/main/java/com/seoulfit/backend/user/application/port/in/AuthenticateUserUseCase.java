@@ -16,14 +16,6 @@ import com.seoulfit.backend.user.domain.AuthProvider;
 public interface AuthenticateUserUseCase {
 
     /**
-     * OAuth 로그인 (Authorization Code Flow)
-     *
-     * @param command OAuth 로그인 명령
-     * @return 토큰 결과
-     */
-    TokenResult oauthLogin(OAuthLoginCommand command);
-
-    /**
      * OAuth 권한부여 승인코드 기반 로그인
      *
      * @param command OAuth 권한부여 명령

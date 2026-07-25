@@ -4,7 +4,6 @@ import com.seoulfit.backend.user.application.port.in.AuthenticateUserUseCase;
 import com.seoulfit.backend.user.application.port.in.dto.OAuthAuthorizationCommand;
 import com.seoulfit.backend.user.application.port.in.dto.OAuthAuthorizeCheckCommand;
 import com.seoulfit.backend.user.application.port.in.dto.OAuthAuthorizeCheckResult;
-import com.seoulfit.backend.user.application.port.in.dto.OAuthLoginCommand;
 import com.seoulfit.backend.user.application.port.in.dto.OAuthSignUpCommand;
 import com.seoulfit.backend.user.application.port.in.dto.OAuthUserCheckCommand;
 import com.seoulfit.backend.user.application.port.in.dto.OAuthUserCheckResult;
@@ -14,7 +13,6 @@ import com.seoulfit.backend.user.domain.AuthProvider;
 import com.seoulfit.backend.user.domain.User;
 import com.seoulfit.backend.user.domain.UserStatus;
 import com.seoulfit.backend.user.domain.exception.OAuthUserAlreadyExistsException;
-import com.seoulfit.backend.user.domain.exception.OAuthUserNotFoundException;
 import com.seoulfit.backend.user.infrastructure.dto.OAuthTokenResponse;
 import com.seoulfit.backend.user.infrastructure.dto.OAuthUserInfo;
 import com.seoulfit.backend.user.infrastructure.jwt.JwtTokenProvider;
@@ -48,8 +46,7 @@ public class AuthenticationService implements AuthenticateUserUseCase {
     @Transactional
     public TokenResult oauthSignUp(OAuthSignUpCommand command) {
         validateSupportedProvider(command.getProvider());
-        log.info("OAuth 회원가입 시작: provider={}, oauthUserId={}",
-                command.getProvider(), command.getOauthUserId());
+        log.info("OAuth 회원가입 시작: provider={}", command.getProvider());
 
         // OAuth 사용자 중복 확인
         if (userPort.existsByProviderAndOauthUserId(command.getProvider(), command.getOauthUserId())) {
@@ -82,20 +79,6 @@ public class AuthenticationService implements AuthenticateUserUseCase {
         log.info("OAuth 회원가입 완료: userId={}, provider={}", savedUser.getId(), command.getProvider());
 
         return createTokenResult(savedUser);
-    }
-
-    @Override
-    public TokenResult oauthLogin(OAuthLoginCommand command) {
-        validateSupportedProvider(command.getProvider());
-        // 새로운 Authorization Code Flow 방식 우선 처리
-        if (command.getAuthorizationCode() != null && command.getRedirectUri() != null) {
-            return oauthLoginWithAuthorizationCode(
-                    OAuthAuthorizationCommand.of(command.getProvider(), command.getAuthorizationCode(), command.getRedirectUri())
-            );
-        }
-
-        // 기존 방식 (deprecated)
-        return oauthLoginLegacy(command);
     }
 
     @Override
@@ -134,25 +117,6 @@ public class AuthenticationService implements AuthenticateUserUseCase {
     }
 
     /**
-     * 기존 방식의 OAuth 로그인 (deprecated)
-     */
-    @Deprecated
-    private TokenResult oauthLoginLegacy(OAuthLoginCommand command) {
-        log.info("OAuth 로그인 시도 (기존 방식): provider={}, oauthUserId={}",
-                command.getProvider(), command.getOauthUserId());
-
-        User user = userPort.findByProviderAndOauthUserId(command.getProvider(), command.getOauthUserId())
-                .orElseThrow(() -> new OAuthUserNotFoundException("OAuth 사용자를 찾을 수 없습니다."));
-
-        if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new IllegalStateException("비활성화된 계정입니다.");
-        }
-
-        log.info("OAuth 로그인 성공 (기존 방식): userId={}, provider={}", user.getId(), command.getProvider());
-        return createTokenResult(user);
-    }
-
-    /**
      * 사용자 조회 또는 생성 (OAuth 토큰 정보 포함)
      */
     @Transactional
@@ -168,8 +132,7 @@ public class AuthenticationService implements AuthenticateUserUseCase {
                     return userPort.save(existingUser);
                 })
                 .orElseGet(() -> {
-                    log.info("새로운 OAuth 사용자 생성: provider={}, oauthId={}",
-                            userInfo.getProvider(), userInfo.getOAuthId());
+                    log.info("새로운 OAuth 사용자 생성: provider={}", userInfo.getProvider());
 
                     // 새 사용자 생성 (토큰 정보 포함)
                     User newUser = User.createOAuthUserWithToken(
@@ -194,8 +157,7 @@ public class AuthenticationService implements AuthenticateUserUseCase {
         // 기존 사용자 조회
         return userPort.findByProviderAndOauthUserId(userInfo.getProvider(), userInfo.getOAuthId())
                 .orElseGet(() -> {
-                    log.info("새로운 OAuth 사용자 생성: provider={}, oauthId={}",
-                            userInfo.getProvider(), userInfo.getOAuthId());
+                    log.info("새로운 OAuth 사용자 생성: provider={}", userInfo.getProvider());
 
                     // 새 사용자 생성
                     User newUser = User.builder()
@@ -229,7 +191,8 @@ public class AuthenticationService implements AuthenticateUserUseCase {
     public TokenResult refreshToken(String refreshToken) {
         log.info("토큰 갱신 요청");
 
-        if (!jwtTokenProvider.validateToken(refreshToken)) {
+        if (!jwtTokenProvider.validateToken(refreshToken)
+                || !jwtTokenProvider.isRefreshToken(refreshToken)) {
             throw new IllegalArgumentException("유효하지 않은 리프레시 토큰입니다.");
         }
 
@@ -248,8 +211,7 @@ public class AuthenticationService implements AuthenticateUserUseCase {
     @Override
     public OAuthUserCheckResult checkOAuthUser(OAuthUserCheckCommand command) {
         validateSupportedProvider(command.getProvider());
-        log.info("OAuth 사용자 확인: provider={}, oauthUserId={}",
-                command.getProvider(), command.getOauthUserId());
+        log.info("OAuth 사용자 확인: provider={}", command.getProvider());
 
         return userPort.findByProviderAndOauthUserId(command.getProvider(), command.getOauthUserId())
                 .map(user -> OAuthUserCheckResult.builder()
@@ -283,8 +245,7 @@ public class AuthenticationService implements AuthenticateUserUseCase {
             // 액세스 토큰으로 사용자 정보 조회
             OAuthUserInfo userInfo = oAuthClient.getUserInfo(tokenResponse.getAccessToken());
 
-            log.info("OAuth 사용자 정보 조회 성공: provider={}, oauthUserId={}",
-                    command.getProvider(), userInfo.getOAuthId());
+            log.info("OAuth 사용자 정보 조회 성공: provider={}", command.getProvider());
 
             return OAuthAuthorizeCheckResult.of(
                     command.getProvider(),

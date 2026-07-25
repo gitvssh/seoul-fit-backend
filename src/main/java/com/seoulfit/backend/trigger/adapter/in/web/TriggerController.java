@@ -5,16 +5,15 @@ import com.seoulfit.backend.trigger.adapter.in.web.dto.TriggerEvaluationResponse
 import com.seoulfit.backend.trigger.application.port.in.EvaluateTriggerUseCase;
 import com.seoulfit.backend.trigger.application.port.in.dto.LocationTriggerCommand;
 import com.seoulfit.backend.trigger.application.port.in.dto.TriggerEvaluationResult;
+import com.seoulfit.backend.user.infrastructure.security.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,7 +27,6 @@ import java.util.List;
  * @author Seoul Fit
  * @since 1.0.0
  */
-@Slf4j
 @RestController
 @RequestMapping("/api/triggers")
 @RequiredArgsConstructor
@@ -44,13 +42,11 @@ public class TriggerController {
     )
     @PostMapping("/evaluate/location")
     public ResponseEntity<TriggerEvaluationResponse> evaluateLocationBasedTriggers(
+            @AuthenticationPrincipal CustomUserDetails principal,
             @Valid @RequestBody LocationTriggerRequest request) {
 
-        log.info("위치 기반 트리거 평가 요청: userId={}, lat={}, lng={}",
-                request.getUserId(), request.getLatitude(), request.getLongitude());
-
         LocationTriggerCommand command = LocationTriggerCommand.of(
-                request.getUserId(),
+                String.valueOf(principal.getUserId()),
                 request.getLatitude(),
                 request.getLongitude(),
                 request.getRadius(),
@@ -67,12 +63,12 @@ public class TriggerController {
     )
     @GetMapping("/history")
     public ResponseEntity<List<TriggerEvaluationResponse>> getTriggerHistory(
-            @AuthenticationPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal CustomUserDetails principal,
             @Parameter(description = "페이지 번호") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "20") int size) {
 
         List<TriggerEvaluationResponse> history = evaluateTriggerUseCase.getTriggerHistory(
-                userDetails.getUsername(), page, size);
+                principal.getUsername(), page, size);
         return ResponseEntity.ok(history);
     }
 }

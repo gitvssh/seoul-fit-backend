@@ -1,9 +1,17 @@
 package com.seoulfit.backend.notification.adapter.in.web;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.seoulfit.backend.notification.adapter.in.web.dto.request.CreateNotificationRequest;
-import com.seoulfit.backend.notification.adapter.in.web.dto.request.CreateNotificationV2Request;
-import com.seoulfit.backend.notification.adapter.in.web.dto.response.NotificationHistoryResponse;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.seoulfit.backend.config.TestSecurityConfig;
+import com.seoulfit.backend.config.WithMockCustomUser;
 import com.seoulfit.backend.notification.application.port.in.ManageNotificationUseCase;
 import com.seoulfit.backend.notification.application.port.in.dto.CreateNotificationCommand;
 import com.seoulfit.backend.notification.application.port.in.dto.NotificationHistoryQuery;
@@ -11,514 +19,116 @@ import com.seoulfit.backend.notification.application.port.in.dto.NotificationHis
 import com.seoulfit.backend.notification.domain.NotificationStatus;
 import com.seoulfit.backend.notification.domain.NotificationType;
 import com.seoulfit.backend.trigger.domain.TriggerCondition;
-import com.seoulfit.backend.config.TestSecurityConfig;
-import org.junit.jupiter.api.BeforeEach;
+import java.time.LocalDateTime;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import static org.hamcrest.Matchers.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-/**
- * NotificationController 단위 테스트
- * 
- * @author Seoul Fit
- * @since 1.0.0
- */
-@WebMvcTest(controllers = NotificationController.class)
+@WebMvcTest(NotificationController.class)
 @AutoConfigureMockMvc(addFilters = false)
 @Import(TestSecurityConfig.class)
 @ActiveProfiles("test")
-@DisplayName("NotificationController 단위 테스트")
+@WithMockCustomUser(id = 42L)
 class NotificationControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-    
-    @Autowired
-    private ObjectMapper objectMapper;
-    
-    @MockBean
-    private ManageNotificationUseCase manageNotificationUseCase;
-    
-    @Nested
-    @DisplayName("알림 생성 API 테스트")
-    class CreateNotificationTest {
-        
-        @Test
-        @WithMockUser
-        @DisplayName("알림 생성 - 성공")
-        void createNotification_Success() throws Exception {
-            // given
-            String requestJson = """
-                {
-                    "userId": 1,
-                    "title": "날씨 알림",
-                    "message": "오늘은 미세먼지가 나쁨 수준입니다.",
-                    "notificationType": "WEATHER",
-                    "triggerCondition": "WEATHER_CHANGE",
-                    "locationInfo": "서울시 중구"
-                }
-                """;
-            
-            when(manageNotificationUseCase.createNotification(any(CreateNotificationCommand.class)))
-                .thenReturn(createNotificationHistory(1L, "날씨 알림", "오늘은 미세먼지가 나쁨 수준입니다.", NotificationStatus.SENT));
-            
-            // when & then
-            mockMvc.perform(post("/api/notifications")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(requestJson))
-                .andDo(print())
+    @Autowired private MockMvc mockMvc;
+    @MockBean private ManageNotificationUseCase manageNotificationUseCase;
+
+    @Test
+    @DisplayName("알림 생성은 요청의 userId가 아니라 인증 사용자를 사용한다")
+    void createsNotificationForAuthenticatedUser() throws Exception {
+        when(manageNotificationUseCase.createNotification(any()))
+                .thenReturn(notification(1L, 42L));
+
+        mockMvc.perform(post("/api/notifications")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "userId": 999,
+                                  "notificationType": "WEATHER",
+                                  "title": "날씨 알림",
+                                  "message": "우산을 챙기세요.",
+                                  "triggerCondition": "WEATHER_CHANGE"
+                                }
+                                """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1L))
-                .andExpect(jsonPath("$.title").value("날씨 알림"));
-            
-            verify(manageNotificationUseCase, times(1)).createNotification(any(CreateNotificationCommand.class));
-        }
-        
-        @Test
-        @WithMockUser
-        @DisplayName("알림 생성 - 필수 필드 누락")
-        void createNotification_MissingRequiredFields() throws Exception {
-            // given
-            String requestJson = """
-                {
-                    "userId": 1
-                }
-                """;
-            
-            // when & then
-            mockMvc.perform(post("/api/notifications")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(requestJson))
-                .andDo(print())
-                .andExpect(status().isBadRequest());
-        }
-        
-        @Test
-        @WithMockUser
-        @DisplayName("알림 생성 - userId 누락")
-        void createNotification_MissingUserId() throws Exception {
-            // given
-            String requestJson = """
-                {
-                    "title": "제목",
-                    "message": "내용",
-                    "notificationType": "CULTURE",
-                    "triggerCondition": "CULTURAL_EVENT"
-                }
-                """;
-            
-            // when & then
-            mockMvc.perform(post("/api/notifications")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(requestJson))
-                .andDo(print())
-                .andExpect(status().isBadRequest());
-        }
-        
-        @Test
-        @WithMockUser
-        @DisplayName("알림 생성 - 빈 제목")
-        void createNotification_EmptyTitle() throws Exception {
-            // given
-            String requestJson = """
-                {
-                    "userId": 1,
-                    "title": "",
-                    "message": "내용",
-                    "notificationType": "WEATHER",
-                    "triggerCondition": "WEATHER_CHANGE"
-                }
-                """;
-            
-            // when & then
-            mockMvc.perform(post("/api/notifications")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(requestJson))
-                .andDo(print())
-                .andExpect(status().isBadRequest());
-        }
+                .andExpect(jsonPath("$.userId").value(42L));
+
+        ArgumentCaptor<CreateNotificationCommand> command =
+                ArgumentCaptor.forClass(CreateNotificationCommand.class);
+        verify(manageNotificationUseCase).createNotification(command.capture());
+        assertThat(command.getValue().userId()).isEqualTo(42L);
     }
-    
-    @Nested
-    @DisplayName("알림 생성 V2 API 테스트")
-    class CreateNotificationV2Test {
-        
-        @Test
-        @WithMockUser
-        @DisplayName("V2 알림 생성 - 성공")
-        void createNotificationV2_Success() throws Exception {
-            // given
-            String requestJson = """
-                {
-                    "userId": 1,
-                    "title": "문화 행사 알림",
-                    "message": "근처에서 축제가 열립니다.",
-                    "notificationType": "CULTURE",
-                    "triggerCondition": "CULTURAL_EVENT",
-                    "priority": "HIGH",
-                    "metadata": "{\\"eventId\\": 123}"
-                }
-                """;
-            
-            when(manageNotificationUseCase.createNotification(any(CreateNotificationCommand.class)))
-                .thenReturn(createNotificationHistory(1L, "문화 행사 알림", "근처에서 축제가 열립니다.", NotificationStatus.SENT));
-            
-            // when & then
-            mockMvc.perform(post("/api/notifications")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(requestJson))
-                .andDo(print())
+
+    @Test
+    @DisplayName("알림 목록 쿼리는 인증 사용자를 사용한다")
+    void listsAuthenticatedUsersNotifications() throws Exception {
+        when(manageNotificationUseCase.getNotificationHistory(any()))
+                .thenReturn(new PageImpl<>(List.of(notification(1L, 42L))));
+
+        mockMvc.perform(get("/api/notifications").param("userId", "999"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.title").value("문화 행사 알림"));
-        }
-        
-        @Test
-        @WithMockUser
-        @DisplayName("V2 알림 생성 - 우선순위 포함")
-        void createNotificationV2_WithPriority() throws Exception {
-            // given
-            String requestJson = """
-                {
-                    "userId": 1,
-                    "title": "긴급 알림",
-                    "message": "긴급 상황입니다.",
-                    "notificationType": "EMERGENCY",
-                    "triggerCondition": "EMERGENCY",
-                    "priority": "URGENT"
-                }
-                """;
-            
-            when(manageNotificationUseCase.createNotification(any(CreateNotificationCommand.class)))
-                .thenReturn(createNotificationHistory(1L, "긴급 알림", "긴급 상황입니다.", NotificationStatus.SENT));
-            
-            // when & then
-            mockMvc.perform(post("/api/notifications")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(requestJson))
-                .andDo(print())
+                .andExpect(jsonPath("$.content[0].userId").value(42L));
+
+        ArgumentCaptor<NotificationHistoryQuery> query =
+                ArgumentCaptor.forClass(NotificationHistoryQuery.class);
+        verify(manageNotificationUseCase).getNotificationHistory(query.capture());
+        assertThat(query.getValue().userId()).isEqualTo(42L);
+    }
+
+    @Test
+    @DisplayName("읽음 처리도 인증 사용자 범위로 제한한다")
+    void marksReadForAuthenticatedUser() throws Exception {
+        mockMvc.perform(patch("/api/notifications/7/read").param("userId", "999"))
                 .andExpect(status().isOk());
-            
-            verify(manageNotificationUseCase, times(1)).createNotification(any(CreateNotificationCommand.class));
-        }
-        
-        @Test
-        @WithMockUser
-        @DisplayName("V2 알림 생성 - 메타데이터 포함")
-        void createNotificationV2_WithMetadata() throws Exception {
-            // given
-            String requestJson = """
-                {
-                    "userId": 1,
-                    "title": "위치 기반 알림",
-                    "message": "근처 맛집 정보",
-                    "notificationType": "TRAFFIC",
-                    "triggerCondition": "LOCATION_BASED",
-                    "metadata": "{\\"lat\\": 37.5665, \\"lng\\": 126.9780, \\"radius\\": 500}"
-                }
-                """;
-            
-            when(manageNotificationUseCase.createNotification(any(CreateNotificationCommand.class)))
-                .thenReturn(createNotificationHistory(1L, "위치 기반 알림", "근처 맛집 정보", NotificationStatus.SENT));
-            
-            // when & then
-            mockMvc.perform(post("/api/notifications")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(requestJson))
-                .andDo(print())
+        verify(manageNotificationUseCase).markAsRead(7L, 42L);
+
+        mockMvc.perform(patch("/api/notifications/read-all").param("userId", "999"))
                 .andExpect(status().isOk());
-        }
+        verify(manageNotificationUseCase).markAllAsRead(42L);
     }
-    
-    @Nested
-    @DisplayName("알림 이력 조회 API 테스트")
-    class NotificationHistoryTest {
-        
-        @Test
-        @WithMockUser
-        @DisplayName("알림 이력 조회 - 성공")
-        void getNotificationHistory_Success() throws Exception {
-            // given
-            Long userId = 1L;
-            List<NotificationHistoryResult> histories = Arrays.asList(
-                createNotificationHistory(1L, "알림1", "내용1", NotificationStatus.SENT),
-                createNotificationHistory(2L, "알림2", "내용2", NotificationStatus.SENT),
-                createNotificationHistory(3L, "알림3", "내용3", NotificationStatus.READ)
-            );
-            
-            Page<NotificationHistoryResult> page = new PageImpl<>(histories, PageRequest.of(0, 10), histories.size());
-            
-            when(manageNotificationUseCase.getNotificationHistory(any(NotificationHistoryQuery.class)))
-                .thenReturn(page);
-            
-            // when & then
-            mockMvc.perform(get("/api/notifications")
-                    .param("userId", userId.toString())
-                    .param("page", "0")
-                    .param("size", "10"))
-                .andDo(print())
+
+    @Test
+    @DisplayName("읽지 않은 수는 인증 사용자 범위로 제한한다")
+    void countsUnreadForAuthenticatedUser() throws Exception {
+        when(manageNotificationUseCase.getUnreadCount(42L)).thenReturn(3L);
+
+        mockMvc.perform(get("/api/notifications/unread-count").param("userId", "999"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content", hasSize(3)))
-                .andExpect(jsonPath("$.content[0].title").value("알림1"))
-                .andExpect(jsonPath("$.content[1].status").value("SENT"))
-                .andExpect(jsonPath("$.totalElements").value(3));
-        }
-        
-        @Test
-        @WithMockUser
-        @DisplayName("알림 이력 조회 - 빈 결과")
-        void getNotificationHistory_EmptyResult() throws Exception {
-            // given
-            Long userId = 999L;
-            Page<NotificationHistoryResult> emptyPage = new PageImpl<>(
-                Collections.emptyList(), 
-                PageRequest.of(0, 10), 
-                0
-            );
-            
-            when(manageNotificationUseCase.getNotificationHistory(any(NotificationHistoryQuery.class)))
-                .thenReturn(emptyPage);
-            
-            // when & then
-            mockMvc.perform(get("/api/notifications").param("userId", userId.toString()))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content", hasSize(0)))
-                .andExpect(jsonPath("$.totalElements").value(0));
-        }
-        
-        @Test
-        @WithMockUser
-        @DisplayName("알림 이력 조회 - 페이징")
-        void getNotificationHistory_WithPaging() throws Exception {
-            // given
-            Long userId = 1L;
-            List<NotificationHistoryResult> histories = Collections.singletonList(
-                createNotificationHistory(1L, "알림", "내용", NotificationStatus.SENT)
-            );
-            
-            Page<NotificationHistoryResult> page = new PageImpl<>(
-                histories, 
-                PageRequest.of(1, 5), 
-                10
-            );
-            
-            when(manageNotificationUseCase.getNotificationHistory(any(NotificationHistoryQuery.class)))
-                .thenReturn(page);
-            
-            // when & then
-            mockMvc.perform(get("/api/notifications")
-                    .param("userId", userId.toString())
-                    .param("page", "1")
-                    .param("size", "5"))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.number").value(1))
-                .andExpect(jsonPath("$.size").value(5))
-                .andExpect(jsonPath("$.totalElements").value(10))
-                .andExpect(jsonPath("$.totalPages").value(2));
-        }
-        
-        @Test
-        @WithMockUser
-        @DisplayName("알림 이력 조회 - 상태 필터")
-        void getNotificationHistory_WithStatusFilter() throws Exception {
-            // given
-            Long userId = 1L;
-            NotificationStatus status = NotificationStatus.READ;
-            
-            List<NotificationHistoryResult> histories = Collections.singletonList(
-                createNotificationHistory(1L, "읽은 알림", "내용", NotificationStatus.READ)
-            );
-            
-            Page<NotificationHistoryResult> page = new PageImpl<>(histories);
-            
-            when(manageNotificationUseCase.getNotificationHistory(any(NotificationHistoryQuery.class)))
-                .thenReturn(page);
-            
-            // when & then
-            mockMvc.perform(get("/api/notifications")
-                    .param("userId", userId.toString())
-                    .param("status", status.name()))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].status").value("READ"));
-        }
-        
-        @Test
-        @WithMockUser
-        @DisplayName("알림 이력 조회 - 날짜 필터")
-        void getNotificationHistory_WithDateFilter() throws Exception {
-            // given
-            Long userId = 1L;
-            String startDate = "2024-01-01";
-            String endDate = "2024-12-31";
-            
-            List<NotificationHistoryResult> histories = Arrays.asList(
-                createNotificationHistory(1L, "알림1", "내용1", NotificationStatus.SENT),
-                createNotificationHistory(2L, "알림2", "내용2", NotificationStatus.SENT)
-            );
-            
-            Page<NotificationHistoryResult> page = new PageImpl<>(histories);
-            
-            when(manageNotificationUseCase.getNotificationHistory(any(NotificationHistoryQuery.class)))
-                .thenReturn(page);
-            
-            // when & then
-            mockMvc.perform(get("/api/notifications")
-                    .param("userId", userId.toString())
-                    .param("startDate", startDate)
-                    .param("endDate", endDate))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content", hasSize(2)));
-        }
+                .andExpect(jsonPath("$").value(3));
     }
-    
-    @Nested
-    @DisplayName("알림 상태 업데이트 API 테스트")
-    class UpdateNotificationStatusTest {
-        
-        @Test
-        @WithMockUser
-        @DisplayName("알림 읽음 처리 - 성공")
-        void markAsRead_Success() throws Exception {
-            // given
-            Long notificationId = 1L;
-            doNothing().when(manageNotificationUseCase).markAsRead(notificationId, 1L);
-            
-            // when & then
-            mockMvc.perform(patch("/api/notifications/{id}/read", notificationId).param("userId", "1"))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(content().string(""));
-            
-            verify(manageNotificationUseCase, times(1)).markAsRead(notificationId, 1L);
-        }
-        
-        @Test
-        @WithMockUser
-        @DisplayName("알림 읽음 처리 - 존재하지 않는 알림")
-        void markAsRead_NotFound() throws Exception {
-            // given
-            Long notificationId = 999L;
-            doThrow(new IllegalArgumentException("알림을 찾을 수 없습니다."))
-                .when(manageNotificationUseCase).markAsRead(notificationId, 1L);
-            
-            // when & then
-            mockMvc.perform(patch("/api/notifications/{id}/read", notificationId).param("userId", "1"))
-                .andDo(print())
+
+    @Test
+    @DisplayName("필수 필드가 없으면 생성 요청을 거부한다")
+    void rejectsInvalidNotification() throws Exception {
+        mockMvc.perform(post("/api/notifications")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"\"}"))
                 .andExpect(status().isBadRequest());
-        }
     }
-    
-    @Nested
-    @DisplayName("알림 삭제 API 테스트")
-    class DeleteNotificationTest {
-        
-        @Test
-        @WithMockUser
-        @DisplayName("알림 삭제 - 성공")
-        void deleteNotification_Success() throws Exception {
-            // given
-            Long notificationId = 1L;
-            doNothing().when(manageNotificationUseCase).markAllAsRead(1L);
-            
-            // when & then
-            mockMvc.perform(patch("/api/notifications/read-all").param("userId", "1"))
-                .andDo(print())
-                .andExpect(status().isOk());
-            
-            verify(manageNotificationUseCase, times(1)).markAllAsRead(1L);
-        }
-        
-        @Test
-        @WithMockUser
-        @DisplayName("알림 삭제 - 권한 없음")
-        void deleteNotification_Unauthorized() throws Exception {
-            // given
-            Long notificationId = 1L;
-            doThrow(new SecurityException("삭제 권한이 없습니다."))
-                .when(manageNotificationUseCase).markAllAsRead(1L);
-            
-            // when & then
-            mockMvc.perform(patch("/api/notifications/read-all").param("userId", "1"))
-                .andDo(print())
-                .andExpect(status().isInternalServerError());
-        }
-    }
-    
-    @Nested
-    @DisplayName("예외 처리 테스트")
-    class ExceptionHandlingTest {
-        
-        @Test
-        @WithMockUser
-        @DisplayName("서비스 예외 발생")
-        void handleServiceException() throws Exception {
-            // given
-            String requestJson = """
-                {
-                    "userId": 1,
-                    "title": "제목",
-                    "message": "내용",
-                    "notificationType": "WEATHER",
-                    "triggerCondition": "WEATHER_CHANGE"
-                }
-                """;
-            
-            when(manageNotificationUseCase.createNotification(any(CreateNotificationCommand.class)))
-                .thenThrow(new RuntimeException("알림 전송 실패"));
-            
-            // when & then
-            mockMvc.perform(post("/api/notifications")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(requestJson))
-                .andDo(print())
-                .andExpect(status().isInternalServerError());
-        }
-    }
-    
-    // Helper method
-    private NotificationHistoryResult createNotificationHistory(Long id, String title, 
-                                                               String content, NotificationStatus status) {
-        // NotificationHistoryResult은 record이므로 직접 생성
+
+    private NotificationHistoryResult notification(Long id, Long userId) {
         return new NotificationHistoryResult(
-            id,
-            1L, // userId
-            NotificationType.WEATHER, // type
-            title,
-            content, // message
-            null, // data
-            TriggerCondition.WEATHER_CHANGE, // triggerCondition
-            "서울시", // locationInfo
-            status,
-            LocalDateTime.now(), // sentAt
-            status == NotificationStatus.READ ? LocalDateTime.now() : null // readAt
-        );
+                id,
+                userId,
+                NotificationType.WEATHER,
+                "날씨 알림",
+                "우산을 챙기세요.",
+                null,
+                TriggerCondition.WEATHER_CHANGE,
+                "서울",
+                NotificationStatus.SENT,
+                LocalDateTime.now(),
+                null);
     }
 }

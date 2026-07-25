@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
 /**
  * 위치 기반 트리거 명령
@@ -23,6 +24,11 @@ public class LocationTriggerCommand {
     private final Integer radius;
     private final List<String> triggerTypes;
     private final Boolean forceEvaluation;
+    private final Long subscriptionId;
+    private final String reason;
+    private final String deepLink;
+    private final LocalDateTime dataObservedAt;
+    private final String dedupKey;
 
     /**
      * 위치 기반 트리거 명령 생성
@@ -43,6 +49,32 @@ public class LocationTriggerCommand {
                 .radius(radius != null ? radius : 2000)
                 .triggerTypes(triggerTypes)
                 .forceEvaluation(false)
+                .build();
+    }
+
+    public static LocationTriggerCommand ofSubscription(
+            String userId,
+            Double latitude,
+            Double longitude,
+            Integer radius,
+            String triggerType,
+            Long subscriptionId,
+            String reason,
+            String deepLink,
+            LocalDateTime dataObservedAt,
+            String dedupKey) {
+        return LocationTriggerCommand.builder()
+                .userId(userId)
+                .latitude(latitude)
+                .longitude(longitude)
+                .radius(radius != null ? radius : 2000)
+                .triggerTypes(List.of(triggerType))
+                .forceEvaluation(false)
+                .subscriptionId(subscriptionId)
+                .reason(reason)
+                .deepLink(deepLink)
+                .dataObservedAt(dataObservedAt)
+                .dedupKey(dedupKey)
                 .build();
     }
 

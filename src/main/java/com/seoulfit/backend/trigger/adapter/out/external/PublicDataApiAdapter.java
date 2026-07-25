@@ -29,7 +29,7 @@ public class PublicDataApiAdapter implements PublicDataPort {
     @Override
     public Map<String, Object> getCityData(String location) {
         try {
-            log.info("서울시 실시간 도시 데이터 조회: location={}", location);
+            log.info("서울시 실시간 도시 데이터 조회");
             
             Mono<Map<String, Object>> cityDataMono = publicDataApiClient.getCityData(location);
             Map<String, Object> cityData = cityDataMono.block();
@@ -37,11 +37,11 @@ public class PublicDataApiAdapter implements PublicDataPort {
             if (cityData != null && !cityData.isEmpty()) {
                 return cityData;
             } else {
-                log.warn("서울시 도시 데이터가 비어있음: location={}", location);
+                log.warn("서울시 도시 데이터가 비어있음");
                 return new HashMap<>();
             }
         } catch (Exception e) {
-            log.error("서울시 도시 데이터 조회 실패: location={}, error={}", location, e.getMessage());
+            log.error("서울시 도시 데이터 조회 실패: error={}", e.getMessage());
             return new HashMap<>();
         }
     }

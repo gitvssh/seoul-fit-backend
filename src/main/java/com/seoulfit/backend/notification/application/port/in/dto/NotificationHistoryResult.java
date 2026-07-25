@@ -21,8 +21,29 @@ public record NotificationHistoryResult(
     String locationInfo,
     NotificationStatus status,
     LocalDateTime sentAt,
-    LocalDateTime readAt
+    LocalDateTime readAt,
+    Long subscriptionId,
+    String reason,
+    String deepLink,
+    LocalDateTime dataObservedAt,
+    String providerStatus
 ) {
+    public NotificationHistoryResult(
+            Long id,
+            Long userId,
+            NotificationType type,
+            String title,
+            String message,
+            String data,
+            TriggerCondition triggerCondition,
+            String locationInfo,
+            NotificationStatus status,
+            LocalDateTime sentAt,
+            LocalDateTime readAt) {
+        this(
+                id, userId, type, title, message, data, triggerCondition, locationInfo, status,
+                sentAt, readAt, null, null, null, null, "IN_APP_CREATED");
+    }
     
     public static NotificationHistoryResult from(NotificationHistory history) {
         return new NotificationHistoryResult(
@@ -36,7 +57,12 @@ public record NotificationHistoryResult(
             history.getLocationInfo(),
             history.getStatus(),
             history.getSentAt(),
-            history.getReadAt()
+            history.getReadAt(),
+            history.getSubscriptionId(),
+            history.getReason(),
+            history.getDeepLink(),
+            history.getDataObservedAt(),
+            history.getProviderStatus()
         );
     }
     

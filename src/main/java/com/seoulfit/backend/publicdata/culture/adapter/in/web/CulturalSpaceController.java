@@ -82,7 +82,7 @@ public class CulturalSpaceController {
             @Parameter(description = "경도", example = "126.9780", required = true)
             @RequestParam String longitude
     ) {
-        log.info("근처 문화공간 조회 요청 - 위도: {}, 경도: {}", latitude, longitude);
+        log.info("근처 문화공간 조회 요청");
         
         try {
             List<CulturalSpace> spaces = queryCulturalSpaceUseCase.getCulturalSpaceByLatitudeAndLongitude(latitude, longitude);

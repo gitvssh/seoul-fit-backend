@@ -79,15 +79,13 @@ public class NotificationSenderAdapter implements NotificationSenderPort {
                     .timeout(Duration.ofSeconds(10))
                     .block();
 
-            log.info("푸시 알림 발송 성공: notificationId={}, deviceToken={}, response={}", 
-                    notification.getId(), deviceToken.substring(0, 10) + "...", response);
+            log.info("푸시 알림 발송 성공: notificationId={}", notification.getId());
             
             deliveryStatusCache.put(notification.getId(), "SENT");
             return true;
 
         } catch (Exception e) {
-            log.error("푸시 알림 발송 실패: notificationId={}, deviceToken={}", 
-                    notification.getId(), deviceToken.substring(0, 10) + "...", e);
+            log.error("푸시 알림 발송 실패: notificationId={}", notification.getId(), e);
             deliveryStatusCache.put(notification.getId(), "FAILED");
             return false;
         }
@@ -113,15 +111,13 @@ public class NotificationSenderAdapter implements NotificationSenderPort {
                     .timeout(Duration.ofSeconds(webhookTimeoutSeconds))
                     .block();
 
-            log.info("웹훅 발송 성공: notificationId={}, webhookUrl={}, response={}", 
-                    notification.getId(), webhookUrl, response);
+            log.info("웹훅 발송 성공: notificationId={}", notification.getId());
             
             deliveryStatusCache.put(notification.getId(), "SENT");
             return true;
 
         } catch (Exception e) {
-            log.error("웹훅 발송 실패: notificationId={}, webhookUrl={}", 
-                    notification.getId(), webhookUrl, e);
+            log.error("웹훅 발송 실패: notificationId={}", notification.getId(), e);
             deliveryStatusCache.put(notification.getId(), "FAILED");
             return false;
         }
@@ -135,23 +131,20 @@ public class NotificationSenderAdapter implements NotificationSenderPort {
         }
 
         if (email == null || email.trim().isEmpty() || !email.contains("@")) {
-            log.warn("유효하지 않은 이메일 주소: notificationId={}, email={}", 
-                    notification.getId(), email);
+            log.warn("유효하지 않은 이메일 주소: notificationId={}", notification.getId());
             return false;
         }
 
         try {
             // 이메일 발송 로직 구현 (예: JavaMailSender 사용)
-            log.info("이메일 알림 발송 (구현 필요): notificationId={}, email={}, title={}", 
-                    notification.getId(), email, notification.getTitle());
+            log.info("이메일 알림 발송 (구현 필요): notificationId={}", notification.getId());
             
             // TODO: 실제 이메일 발송 구현
             deliveryStatusCache.put(notification.getId(), "SENT");
             return true;
 
         } catch (Exception e) {
-            log.error("이메일 알림 발송 실패: notificationId={}, email={}", 
-                    notification.getId(), email, e);
+            log.error("이메일 알림 발송 실패: notificationId={}", notification.getId(), e);
             deliveryStatusCache.put(notification.getId(), "FAILED");
             return false;
         }
@@ -172,16 +165,14 @@ public class NotificationSenderAdapter implements NotificationSenderPort {
 
         try {
             // SMS 발송 로직 구현 (예: AWS SNS, Twilio 등 사용)
-            log.info("SMS 알림 발송 (구현 필요): notificationId={}, phoneNumber={}, message={}", 
-                    notification.getId(), phoneNumber, notification.getMessage());
+            log.info("SMS 알림 발송 (구현 필요): notificationId={}", notification.getId());
             
             // TODO: 실제 SMS 발송 구현
             deliveryStatusCache.put(notification.getId(), "SENT");
             return true;
 
         } catch (Exception e) {
-            log.error("SMS 알림 발송 실패: notificationId={}, phoneNumber={}", 
-                    notification.getId(), phoneNumber, e);
+            log.error("SMS 알림 발송 실패: notificationId={}", notification.getId(), e);
             deliveryStatusCache.put(notification.getId(), "FAILED");
             return false;
         }

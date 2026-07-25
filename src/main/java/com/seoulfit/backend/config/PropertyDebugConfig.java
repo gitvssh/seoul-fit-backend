@@ -48,17 +48,17 @@ public class PropertyDebugConfig implements CommandLineRunner {
         String springKakaoId = environment.getProperty("KAKAO_CLIENT_ID");
         
         log.info("1. OS 환경변수:");
-        log.info("   SEOUL_API_KEY: {}", maskValue(envSeoulKey));
-        log.info("   KAKAO_CLIENT_ID: {}", maskValue(envKakaoId));
+        log.info("   SEOUL_API_KEY configured: {}", envSeoulKey != null);
+        log.info("   KAKAO_CLIENT_ID configured: {}", envKakaoId != null);
         
         log.info("2. Spring Environment:");
-        log.info("   SEOUL_API_KEY: {}", maskValue(springSeoulKey));
-        log.info("   KAKAO_CLIENT_ID: {}", maskValue(springKakaoId));
+        log.info("   SEOUL_API_KEY configured: {}", springSeoulKey != null);
+        log.info("   KAKAO_CLIENT_ID configured: {}", springKakaoId != null);
         
         log.info("3. @Value로 주입된 값:");
-        log.info("   seoul-api.api-key: {}", maskValue(seoulApiKey));
-        log.info("   kakao.client-id: {}", maskValue(kakaoClientId));
-        log.info("   jwt.secret: {}", maskValue(jwtSecret));
+        log.info("   seoul-api.api-key configured: {}", isConfigured(seoulApiKey));
+        log.info("   kakao.client-id configured: {}", isConfigured(kakaoClientId));
+        log.info("   jwt.secret configured: {}", isConfigured(jwtSecret));
         
         log.info("4. 값의 출처:");
         if (envSeoulKey != null) {
@@ -75,13 +75,7 @@ public class PropertyDebugConfig implements CommandLineRunner {
     /**
      * 민감정보 마스킹
      */
-    private String maskValue(String value) {
-        if (value == null) {
-            return "null";
-        }
-        if (value.length() <= 8) {
-            return "***";
-        }
-        return value.substring(0, 4) + "***" + value.substring(value.length() - 4);
+    private boolean isConfigured(String value) {
+        return value != null && !value.isBlank();
     }
 }

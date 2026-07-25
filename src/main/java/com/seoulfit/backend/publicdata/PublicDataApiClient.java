@@ -104,7 +104,7 @@ public class PublicDataApiClient {
         // 캐시 확인 (5분 캐시)
         CachedResponse cached = responseCache.get(cacheKey);
         if (cached != null && !cached.isExpired(Duration.ofMinutes(5))) {
-            log.debug("캐시된 도시 데이터 반환: location={}", locationName);
+            log.debug("캐시된 도시 데이터 반환");
             return Mono.just((Map<String, Object>) cached.data);
         }
 
@@ -119,9 +119,9 @@ public class PublicDataApiClient {
                 .map(this::parseJsonResponse)
                 .doOnSuccess(data -> {
                     responseCache.put(cacheKey, new CachedResponse(data));
-                    log.debug("도시 데이터 조회 성공: location={}", locationName);
+                    log.debug("도시 데이터 조회 성공");
                 })
-                .doOnError(error -> log.error("도시 데이터 조회 실패: location={}", locationName, error));
+                .doOnError(error -> log.error("도시 데이터 조회 실패", error));
     }
 
     /**
@@ -386,7 +386,7 @@ public class PublicDataApiClient {
      * @return 통합된 실시간 데이터 맵
      */
     public Map<String, Object> fetchRealtimeData(Double latitude, Double longitude) {
-        log.debug("위치 기반 실시간 데이터 조회: lat={}, lng={}", latitude, longitude);
+        log.debug("위치 기반 실시간 데이터 조회 시작");
         
         Map<String, Object> realtimeData = new HashMap<>();
         
@@ -416,8 +416,7 @@ public class PublicDataApiClient {
             }
             
         } catch (Exception e) {
-            log.error("실시간 데이터 조회 중 오류 발생: lat={}, lng={}, error={}", 
-                    latitude, longitude, e.getMessage(), e);
+            log.error("실시간 데이터 조회 중 오류 발생: error={}", e.getMessage(), e);
         }
         
         return realtimeData;

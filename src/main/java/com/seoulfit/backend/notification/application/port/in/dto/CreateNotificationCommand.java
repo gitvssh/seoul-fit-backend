@@ -2,6 +2,7 @@ package com.seoulfit.backend.notification.application.port.in.dto;
 
 import com.seoulfit.backend.notification.domain.NotificationType;
 import com.seoulfit.backend.trigger.domain.TriggerCondition;
+import java.time.LocalDateTime;
 
 /**
  * 알림 생성 명령
@@ -14,7 +15,12 @@ public record CreateNotificationCommand(
         String data,
         TriggerCondition triggerCondition,
         String locationInfo,
-        Integer priority
+        Integer priority,
+        Long subscriptionId,
+        String reason,
+        String deepLink,
+        LocalDateTime dataObservedAt,
+        String dedupKey
 ) {
 
     public CreateNotificationCommand {
@@ -37,7 +43,9 @@ public record CreateNotificationCommand(
      */
     public static CreateNotificationCommand of(Long userId, NotificationType type, String title, String message,
             TriggerCondition triggerCondition, String locationInfo) {
-        return new CreateNotificationCommand(userId, type, title, message, null, triggerCondition, locationInfo, null);
+        return new CreateNotificationCommand(
+                userId, type, title, message, null, triggerCondition, locationInfo, null,
+                null, null, null, null, null);
     }
     
     /**
@@ -45,7 +53,27 @@ public record CreateNotificationCommand(
      */
     public static CreateNotificationCommand of(Long userId, NotificationType type, String title, String message,
             TriggerCondition triggerCondition, String locationInfo, Integer priority) {
-        return new CreateNotificationCommand(userId, type, title, message, null, triggerCondition, locationInfo, priority);
+        return new CreateNotificationCommand(
+                userId, type, title, message, null, triggerCondition, locationInfo, priority,
+                null, null, null, null, null);
+    }
+
+    public static CreateNotificationCommand inApp(
+            Long userId,
+            NotificationType type,
+            String title,
+            String message,
+            TriggerCondition triggerCondition,
+            String locationInfo,
+            Integer priority,
+            Long subscriptionId,
+            String reason,
+            String deepLink,
+            LocalDateTime dataObservedAt,
+            String dedupKey) {
+        return new CreateNotificationCommand(
+                userId, type, title, message, null, triggerCondition, locationInfo, priority,
+                subscriptionId, reason, deepLink, dataObservedAt, dedupKey);
     }
 
     // 기존 코드와의 호환성을 위한 별칭 메서드들

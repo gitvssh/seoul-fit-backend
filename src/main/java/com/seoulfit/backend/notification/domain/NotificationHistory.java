@@ -111,6 +111,24 @@ public class NotificationHistory {
     @Column(name = "read_at")
     private LocalDateTime readAt;
 
+    @Column(name = "subscription_id")
+    private Long subscriptionId;
+
+    @Column(length = 500)
+    private String reason;
+
+    @Column(name = "deep_link", length = 500)
+    private String deepLink;
+
+    @Column(name = "data_observed_at")
+    private LocalDateTime dataObservedAt;
+
+    @Column(name = "provider_status", nullable = false, length = 40)
+    private String providerStatus = "IN_APP_CREATED";
+
+    @Column(name = "dedup_key", length = 220)
+    private String dedupKey;
+
     /**
      * 알림이 발송된 시간입니다.
      * JPA Auditing에 의해 자동으로 설정됩니다.
@@ -166,6 +184,29 @@ public class NotificationHistory {
                 .triggerCondition(triggerCondition)
                 .locationInfo(locationInfo)
                 .build();
+    }
+
+    public static NotificationHistory createInApp(
+            Long userId,
+            NotificationType notificationType,
+            String title,
+            String message,
+            TriggerCondition triggerCondition,
+            String locationInfo,
+            Long subscriptionId,
+            String reason,
+            String deepLink,
+            LocalDateTime dataObservedAt,
+            String dedupKey) {
+        NotificationHistory history = create(
+                userId, notificationType, title, message, triggerCondition, locationInfo);
+        history.subscriptionId = subscriptionId;
+        history.reason = reason;
+        history.deepLink = deepLink;
+        history.dataObservedAt = dataObservedAt;
+        history.providerStatus = "IN_APP_CREATED";
+        history.dedupKey = dedupKey;
+        return history;
     }
 
     /**

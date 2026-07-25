@@ -4,12 +4,14 @@ import com.seoulfit.backend.user.application.port.in.ManageUserUseCase;
 import com.seoulfit.backend.user.application.port.in.dto.UpdateUserCommand;
 import com.seoulfit.backend.user.application.port.in.dto.UserResult;
 import com.seoulfit.backend.user.adapter.in.web.dto.UpdateUserRequest;
-import com.seoulfit.backend.user.domain.AuthProvider;
+import com.seoulfit.backend.user.infrastructure.security.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -34,18 +36,19 @@ public class UserController {
 
     @Operation(summary = "사용자 조회", description = "사용자 ID로 사용자 정보를 조회합니다.")
     @GetMapping("/{userId}")
-    public ResponseEntity<UserResult> getUser(@PathVariable Long userId) {
+    public ResponseEntity<UserResult> getUser(
+            @PathVariable Long userId,
+            @AuthenticationPrincipal CustomUserDetails principal) {
+        requireOwner(userId, principal);
         UserResult result = manageUserUseCase.getUser(userId);
         return ResponseEntity.ok(result);
     }
 
-    @Operation(summary = "내 정보 조회", description = "OAuth 인증 정보로 사용자 정보를 조회합니다.")
+    @Operation(summary = "내 정보 조회", description = "현재 인증된 사용자의 정보를 조회합니다.")
     @GetMapping("/me")
     public ResponseEntity<UserResult> getMyInfo(
-            @RequestParam String oauthUserId,
-            @RequestParam String oauthProvider) {
-        AuthProvider provider = AuthProvider.fromCode(oauthProvider);
-        UserResult result = manageUserUseCase.getUserByOAuth(oauthUserId, provider);
+            @AuthenticationPrincipal CustomUserDetails principal) {
+        UserResult result = manageUserUseCase.getUser(requireAuthenticated(principal));
         return ResponseEntity.ok(result);
     }
 
@@ -53,8 +56,10 @@ public class UserController {
     @PutMapping("/{userId}")
     public ResponseEntity<UserResult> updateUser(
             @PathVariable Long userId,
+            @AuthenticationPrincipal CustomUserDetails principal,
             @Valid @RequestBody UpdateUserRequest request) {
-        
+        requireOwner(userId, principal);
+
         UpdateUserCommand command = UpdateUserCommand.of(
                 userId,
                 request.getNickname(),
@@ -71,8 +76,25 @@ public class UserController {
 
     @Operation(summary = "사용자 삭제", description = "사용자를 삭제합니다.")
     @DeleteMapping("/{userId}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long userId) {
+    public ResponseEntity<Void> deleteUser(
+            @PathVariable Long userId,
+            @AuthenticationPrincipal CustomUserDetails principal) {
+        requireOwner(userId, principal);
         manageUserUseCase.deleteUser(userId);
         return ResponseEntity.noContent().build();
+    }
+
+    private Long requireAuthenticated(CustomUserDetails principal) {
+        if (principal == null || principal.getUserId() == null) {
+            throw new AccessDeniedException("인증된 사용자만 접근할 수 있습니다.");
+        }
+        return principal.getUserId();
+    }
+
+    private void requireOwner(Long requestedUserId, CustomUserDetails principal) {
+        Long authenticatedUserId = requireAuthenticated(principal);
+        if (!authenticatedUserId.equals(requestedUserId)) {
+            throw new AccessDeniedException("다른 사용자의 정보에는 접근할 수 없습니다.");
+        }
     }
 }

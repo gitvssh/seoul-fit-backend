@@ -54,8 +54,7 @@ public class AdvancedLocationController {
             @Valid @RequestBody AdvancedLocationRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
         
-        log.info("고도화된 개인화 위치 데이터 조회 요청: userId={}, lat={}, lng={}, scale={}", 
-                userDetails.getUsername(), request.getLatitude(), request.getLongitude(), 
+        log.info("고도화된 개인화 위치 데이터 조회 요청: scale={}",
                 request.getMapScale() != null ? request.getMapScale().getDisplayName() : "AUTO");
 
         // 사용자 정보 및 관심사 조회
@@ -93,8 +92,7 @@ public class AdvancedLocationController {
     public ResponseEntity<AdvancedLocationResponse> getAdvancedComprehensiveData(
             @Valid @RequestBody AdvancedLocationRequest request) {
         
-        log.info("고도화된 통합 위치 데이터 조회 요청: lat={}, lng={}, scale={}", 
-                request.getLatitude(), request.getLongitude(), 
+        log.info("고도화된 통합 위치 데이터 조회 요청: scale={}",
                 request.getMapScale() != null ? request.getMapScale().getDisplayName() : "AUTO");
 
         // 모든 관심사 포함
@@ -145,8 +143,8 @@ public class AdvancedLocationController {
             @Parameter(description = "바운딩 박스 높이 (km)", example = "1.5")
             @RequestParam(required = false) Double boundingBoxHeightKm) {
         
-        log.info("지도 축적정보 추천 요청: lat={}, lng={}, zoom={}, metersPerPixel={}, bbox=[{}, {}]", 
-                latitude, longitude, zoomLevel, metersPerPixel, boundingBoxWidthKm, boundingBoxHeightKm);
+        log.info("지도 축적정보 추천 요청: zoom={}, metersPerPixel={}, bboxSize=[{}, {}]",
+                zoomLevel, metersPerPixel, boundingBoxWidthKm, boundingBoxHeightKm);
 
         MapScale recommendedScale;
 

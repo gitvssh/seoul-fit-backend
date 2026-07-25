@@ -6,6 +6,7 @@ import com.seoulfit.backend.user.adapter.out.persistence.UserPort;
 import com.seoulfit.backend.user.domain.InterestCategory;
 import com.seoulfit.backend.user.domain.User;
 import com.seoulfit.backend.user.domain.UserInterest;
+import com.seoulfit.backend.user.infrastructure.security.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -13,6 +14,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -41,8 +43,9 @@ public class UserInterestController {
             description = "현재 로그인한 사용자의 관심사 설정을 조회합니다."
     )
     @PostMapping
-    public ResponseEntity<UserInterestResponse> getUserInterests(@RequestBody Long userId) {
-        User user = userPort.findById(userId)
+    public ResponseEntity<UserInterestResponse> getUserInterests(
+            @AuthenticationPrincipal CustomUserDetails principal) {
+        User user = userPort.findById(principal.getUserId())
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
         List<InterestCategory> interests = userInterestPort.findInterestsByUserId(user.getId());
@@ -58,12 +61,13 @@ public class UserInterestController {
     @PutMapping
     @Transactional
     public ResponseEntity<UserInterestResponse> updateUserInterests(
+            @AuthenticationPrincipal CustomUserDetails principal,
             @Valid @RequestBody UserInterestRequest request) {
         if (!request.isValid()) {
             throw new IllegalArgumentException("유효하지 않은 관심사입니다.");
         }
 
-        User user = userPort.findById(request.getUserId())
+        User user = userPort.findById(principal.getUserId())
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
         // 기존 관심사 삭제

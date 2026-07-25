@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -26,6 +27,11 @@ public class SearchIndexRepositoryAdapter implements SearchIndexRepository {
     public Page<PoiSearchIndex> findAll(Pageable pageable) {
         return jpaRepository.findAllWithPaging(pageable);
     }
+
+    @Override
+    public Page<PoiSearchIndex> findByRefTable(String refTable, Pageable pageable) {
+        return jpaRepository.findByRefTable(refTable, pageable);
+    }
     
     @Override
     public Optional<PoiSearchIndex> findById(Long id) {
@@ -35,6 +41,11 @@ public class SearchIndexRepositoryAdapter implements SearchIndexRepository {
     @Override
     public Optional<PoiSearchIndex> findByRefTableAndRefId(String refTable, Long refId) {
         return jpaRepository.findByRefTableAndRefId(refTable, refId);
+    }
+
+    @Override
+    public List<PoiSearchIndex> findAllByRefTable(String refTable) {
+        return jpaRepository.findAllByRefTableOrderByNameAsc(refTable);
     }
     
     @Override

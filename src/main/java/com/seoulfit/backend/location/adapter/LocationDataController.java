@@ -60,7 +60,7 @@ public class LocationDataController {
             @Parameter(description = "검색 반경 (km)", example = "2.0")
             @RequestParam(defaultValue = "2.0") @Positive Double radius) {
 
-        log.info("위치 기반 통합 데이터 조회 요청: lat={}, lng={}, radius={}km", latitude, longitude, radius);
+        log.info("위치 기반 통합 데이터 조회 요청: radius={}km", radius);
 
         LocationBasedDataService.LocationBasedData data = locationBasedDataService.findNearbyData(
                 latitude, longitude, radius);
@@ -88,8 +88,7 @@ public class LocationDataController {
 
             @AuthenticationPrincipal UserDetails userDetails) {
 
-        log.info("개인화된 위치 기반 데이터 조회 요청: userId={}, lat={}, lng={}, radius={}km",
-                userDetails.getUsername(), latitude, longitude, radius);
+        log.info("개인화된 위치 기반 데이터 조회 요청: radius={}km", radius);
 
         // 사용자 관심사 조회
         User user = userPort.findByEmail(userDetails.getUsername())
@@ -127,7 +126,7 @@ public class LocationDataController {
             @Parameter(description = "검색 반경 (km)", example = "2.0")
             @RequestParam(defaultValue = "2.0") @Positive Double radius) {
 
-        log.info("위치 기반 맛집 조회 요청: lat={}, lng={}, radius={}km", latitude, longitude, radius);
+        log.info("위치 기반 맛집 조회 요청: radius={}km", radius);
 
         var restaurants = locationBasedDataService.findNearbyRestaurants(latitude, longitude, radius);
         var response = LocationDataResponse.RestaurantsResponse.from(restaurants);
@@ -151,7 +150,7 @@ public class LocationDataController {
             @Parameter(description = "검색 반경 (km)", example = "2.0")
             @RequestParam(defaultValue = "2.0") @Positive Double radius) {
 
-        log.info("위치 기반 도서관 조회 요청: lat={}, lng={}, radius={}km", latitude, longitude, radius);
+        log.info("위치 기반 도서관 조회 요청: radius={}km", radius);
 
         var libraries = locationBasedDataService.findNearbyLibraries(latitude, longitude, radius);
         var response = LocationDataResponse.LibrariesResponse.from(libraries);
@@ -175,7 +174,7 @@ public class LocationDataController {
             @Parameter(description = "검색 반경 (km)", example = "2.0")
             @RequestParam(defaultValue = "2.0") @Positive Double radius) {
 
-        log.info("위치 기반 공원 조회 요청: lat={}, lng={}, radius={}km", latitude, longitude, radius);
+        log.info("위치 기반 공원 조회 요청: radius={}km", radius);
 
         var parks = locationBasedDataService.findNearbyParks(latitude, longitude, radius);
         var response = LocationDataResponse.ParksResponse.from(parks);
@@ -199,7 +198,7 @@ public class LocationDataController {
             @Parameter(description = "검색 반경 (km)", example = "2.0")
             @RequestParam(defaultValue = "2.0") @Positive Double radius) {
 
-        log.info("위치 기반 체육시설 조회 요청: lat={}, lng={}, radius={}km", latitude, longitude, radius);
+        log.info("위치 기반 체육시설 조회 요청: radius={}km", radius);
 
         var facilities = locationBasedDataService.findNearbySportsFacilities(latitude, longitude, radius);
         var response = LocationDataResponse.SportsFacilitiesResponse.from(facilities);
@@ -223,7 +222,7 @@ public class LocationDataController {
             @Parameter(description = "검색 반경 (km)", example = "2.0")
             @RequestParam(defaultValue = "2.0") @Positive Double radius) {
 
-        log.info("위치 기반 무더위쉼터 조회 요청: lat={}, lng={}, radius={}km", latitude, longitude, radius);
+        log.info("위치 기반 무더위쉼터 조회 요청: radius={}km", radius);
 
         var centers = locationBasedDataService.findNearbyCoolingCenters(latitude, longitude, radius);
         var response = LocationDataResponse.CoolingCentersResponse.from(centers);

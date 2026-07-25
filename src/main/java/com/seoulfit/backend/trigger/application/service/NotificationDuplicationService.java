@@ -135,8 +135,8 @@ public class NotificationDuplicationService {
                 userId, condition, userLatitude, userLongitude, radiusKm, since);
         
         if (isDuplicate) {
-            log.debug("위치 기반 중복 알림 방지: userId={}, condition={}, location=[{}, {}], duration={}", 
-                    userId, condition, userLatitude, userLongitude, policy.getPreventionDuration());
+            log.debug("위치 기반 중복 알림 방지: userId={}, condition={}, duration={}",
+                    userId, condition, policy.getPreventionDuration());
         }
         
         return isDuplicate;

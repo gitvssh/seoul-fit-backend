@@ -26,7 +26,4 @@ public class OAuthLoginRequest {
     @NotBlank(message = "리다이렉트 URI는 필수입니다.")
     private String redirectUri;
 
-    // 기존 방식과의 호환성을 위해 유지 (deprecated)
-    @Deprecated
-    private String oauthUserId;
 }

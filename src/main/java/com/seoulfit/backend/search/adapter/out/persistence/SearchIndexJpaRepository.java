@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.List;
 
 @Repository
 public interface SearchIndexJpaRepository extends JpaRepository<PoiSearchIndex, Long> {
@@ -22,7 +23,11 @@ public interface SearchIndexJpaRepository extends JpaRepository<PoiSearchIndex, 
     Page<PoiSearchIndex> findByKeyword(@Param("keyword") String keyword, Pageable pageable);
     
     Optional<PoiSearchIndex> findByRefTableAndRefId(String refTable, Long refId);
+
+    List<PoiSearchIndex> findAllByRefTableOrderByNameAsc(String refTable);
     
     @Query("SELECT p FROM PoiSearchIndex p")
     Page<PoiSearchIndex> findAllWithPaging(Pageable pageable);
+
+    Page<PoiSearchIndex> findByRefTable(String refTable, Pageable pageable);
 }

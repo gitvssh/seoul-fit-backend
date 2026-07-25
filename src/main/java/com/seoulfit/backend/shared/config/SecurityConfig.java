@@ -49,7 +49,11 @@ public class SecurityConfig {
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                            .requestMatchers("/api/auth/**", "/oauth2/**", "/login/**").permitAll()
+                            .requestMatchers(
+                                    "/api/auth/oauth/login",
+                                    "/api/auth/refresh",
+                                    "/oauth2/**",
+                                    "/login/**").permitAll()
                             .requestMatchers(HttpMethod.GET,
                                     "/api/v1/cultural-events/**",
                                     "/api/v1/cultural-reservations/**",
@@ -61,6 +65,7 @@ public class SecurityConfig {
                                     "/api/parks/**",
                                     "/api/sports/**",
                                     "/api/search/**",
+                                    "/api/public/places/**",
                                     "/api/location/nearby",
                                     "/api/location/restaurants",
                                     "/api/location/libraries",
@@ -69,17 +74,25 @@ public class SecurityConfig {
                                     "/api/location/cooling-centers",
                                     "/api/location/advanced/recommend-scale").permitAll()
                             .requestMatchers(
-                                    "/api/admin/batch/**",
                                     "/actuator/health",
-                                    "/actuator/health/**",
-                                    "/actuator/prometheus").permitAll();
+                                    "/actuator/health/**").permitAll();
 
                     if (environment.acceptsProfiles(Profiles.of("local", "dev"))) {
                         auth.requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
                                 "/actuator/scheduledtasks").permitAll();
                     }
                     if (environment.acceptsProfiles(Profiles.of("local"))) {
-                        auth.requestMatchers("/h2-console/**").permitAll();
+                        auth.requestMatchers(
+                                "/h2-console/**",
+                                "/api/admin/batch/**",
+                                "/actuator/prometheus",
+                                "/actuator/scheduledtasks").permitAll();
+                    }
+                    if (!environment.acceptsProfiles(Profiles.of("local", "dev"))) {
+                        auth.requestMatchers(
+                                "/api/admin/**",
+                                "/actuator/prometheus",
+                                "/actuator/scheduledtasks").denyAll();
                     }
 
                     auth.anyRequest().authenticated();
