@@ -1,6 +1,7 @@
 package com.seoulfit.backend.publicdata.catalogue.application;
 
 import com.seoulfit.backend.publicdata.catalogue.adapter.in.web.dto.PublicPlacePageResponse;
+import com.seoulfit.backend.publicdata.catalogue.adapter.in.web.dto.PublicPlaceResponse;
 import com.seoulfit.backend.publicdata.catalogue.adapter.in.web.dto.PublicPlaceSitemapEntry;
 import com.seoulfit.backend.search.application.port.out.PublicDataRepository;
 import com.seoulfit.backend.search.application.port.out.SearchIndexRepository;
@@ -15,6 +16,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -73,5 +75,24 @@ class PublicPlaceServiceTest {
         List<PublicPlaceSitemapEntry> entries = publicPlaceService.sitemapEntries("library");
 
         assertThat(entries).extracting(PublicPlaceSitemapEntry::id).containsExactly(101L);
+    }
+
+    @Test
+    @DisplayName("원본 레코드가 정리돼도 검색 인덱스 상세를 공개해 sitemap URL을 유지한다")
+    void findFallsBackToSearchIndexWhenSourceRecordIsMissing() {
+        PoiSearchIndex index = new PoiSearchIndex(
+                "서울숲", "서울 성동구", "공원 산책", "", "park", 42L
+        );
+        when(searchIndexRepository.findByRefTableAndRefId("park", 42L)).thenReturn(Optional.of(index));
+        when(publicDataRepository.findParkById(42L)).thenReturn(Optional.empty());
+
+        Optional<PublicPlaceResponse> response = publicPlaceService.find("park", 42L);
+
+        assertThat(response).hasValueSatisfying(place -> {
+            assertThat(place.id()).isEqualTo(42L);
+            assertThat(place.name()).isEqualTo("서울숲");
+            assertThat(place.address()).isEqualTo("서울 성동구");
+            assertThat(place.description()).isEqualTo("공원 산책");
+        });
     }
 }

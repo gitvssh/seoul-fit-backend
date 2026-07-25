@@ -68,8 +68,9 @@ public class PublicPlaceService {
     public Optional<PublicPlaceResponse> find(String categorySlug, Long sourceId) {
         PublicPlaceCategory category = PublicPlaceCategory.fromSlug(categorySlug);
         return searchIndexRepository.findByRefTableAndRefId(category.getRefTable(), sourceId)
-                .flatMap(index -> sourceFor(category, sourceId)
-                        .map(source -> toResponse(category, index, source)));
+                .map(index -> sourceFor(category, sourceId)
+                        .map(source -> toResponse(category, index, source))
+                        .orElseGet(() -> fallbackResponse(category, index)));
     }
 
     /**
@@ -95,6 +96,27 @@ public class PublicPlaceService {
                 index.getName(),
                 index.getAddress(),
                 index.getRemark()
+        );
+    }
+
+    private PublicPlaceResponse fallbackResponse(PublicPlaceCategory category, PoiSearchIndex index) {
+        return response(
+                category,
+                index.getRefId(),
+                index.getName(),
+                index.getAddress(),
+                index.getRemark(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                false,
+                index.getUpdatedAt()
         );
     }
 
