@@ -69,7 +69,7 @@ public class NotificationSenderAdapter implements NotificationSenderPort {
         try {
             Map<String, Object> fcmPayload = buildFcmPayload(notification, deviceToken);
             
-            String response = webClient.post()
+            webClient.post()
                     .uri(fcmUrl)
                     .header(HttpHeaders.AUTHORIZATION, "key=" + fcmServerKey)
                     .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
@@ -102,7 +102,7 @@ public class NotificationSenderAdapter implements NotificationSenderPort {
         try {
             Map<String, Object> webhookPayload = buildWebhookPayload(notification);
             
-            String response = webClient.post()
+            webClient.post()
                     .uri(webhookUrl)
                     .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                     .bodyValue(webhookPayload)

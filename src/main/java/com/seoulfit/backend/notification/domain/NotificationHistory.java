@@ -186,6 +186,7 @@ public class NotificationHistory {
                 .build();
     }
 
+    @SuppressWarnings("java:S107") // In-app notification delivery carries one cohesive event payload.
     public static NotificationHistory createInApp(
             Long userId,
             NotificationType notificationType,

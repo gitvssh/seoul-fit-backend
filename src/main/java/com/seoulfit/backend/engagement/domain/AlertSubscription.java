@@ -69,6 +69,7 @@ public class AlertSubscription {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @SuppressWarnings("java:S107") // This factory initializes the complete persisted subscription state.
     public static AlertSubscription create(
             Long userId,
             Long zoneId,
@@ -98,6 +99,7 @@ public class AlertSubscription {
         return subscription;
     }
 
+    @SuppressWarnings("java:S107") // The schedule fields form one atomic subscription update.
     public void update(
             Set<DayOfWeek> days,
             LocalTime activeStart,

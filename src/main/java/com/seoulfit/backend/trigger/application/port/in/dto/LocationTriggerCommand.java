@@ -52,6 +52,7 @@ public class LocationTriggerCommand {
                 .build();
     }
 
+    @SuppressWarnings("java:S107") // This factory maps the complete subscription evaluation request.
     public static LocationTriggerCommand ofSubscription(
             String userId,
             Double latitude,

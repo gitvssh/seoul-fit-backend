@@ -31,6 +31,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    private static final String ACTUATOR_SCHEDULED_TASKS = "/actuator/scheduledtasks";
+
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -80,18 +82,18 @@ public class SecurityConfig {
 
                     if (environment.acceptsProfiles(Profiles.of("local", "dev"))) {
                         auth.requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
-                                "/actuator/scheduledtasks").permitAll();
+                                ACTUATOR_SCHEDULED_TASKS).permitAll();
                     }
                     if (environment.acceptsProfiles(Profiles.of("local"))) {
                         auth.requestMatchers(
                                 "/h2-console/**",
                                 "/api/admin/batch/**",
-                                "/actuator/scheduledtasks").permitAll();
+                                ACTUATOR_SCHEDULED_TASKS).permitAll();
                     }
                     if (!environment.acceptsProfiles(Profiles.of("local", "dev"))) {
                         auth.requestMatchers(
                                 "/api/admin/**",
-                                "/actuator/scheduledtasks").denyAll();
+                                ACTUATOR_SCHEDULED_TASKS).denyAll();
                     }
 
                     auth.anyRequest().authenticated();

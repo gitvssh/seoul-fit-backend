@@ -172,6 +172,7 @@ public class PublicPlaceService {
         throw new IllegalStateException("지원하지 않는 공개 장소 데이터 유형입니다.");
     }
 
+    @SuppressWarnings("java:S107") // One response projection intentionally contains every public place attribute.
     private PublicPlaceResponse response(
             PublicPlaceCategory category,
             Long id,

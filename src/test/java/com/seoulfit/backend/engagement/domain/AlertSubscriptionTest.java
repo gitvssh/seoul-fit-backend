@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.Month;
 import java.util.EnumSet;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,7 +15,7 @@ class AlertSubscriptionTest {
     @Test
     @DisplayName("활성 요일과 시간대 안에서는 알림을 평가할 수 있다")
     void canTriggerInsideActiveWindow() {
-        LocalDateTime now = LocalDateTime.of(2026, 7, 20, 12, 0);
+        LocalDateTime now = LocalDateTime.of(2026, Month.JULY, 20, 12, 0);
         AlertSubscription subscription = subscription(
                 EnumSet.of(DayOfWeek.MONDAY),
                 LocalTime.of(9, 0),
@@ -30,7 +31,7 @@ class AlertSubscriptionTest {
     @Test
     @DisplayName("자정을 넘는 방해 금지 시간에는 알림을 평가하지 않는다")
     void blocksOvernightQuietHours() {
-        LocalDateTime now = LocalDateTime.of(2026, 7, 20, 12, 0);
+        LocalDateTime now = LocalDateTime.of(2026, Month.JULY, 20, 12, 0);
         AlertSubscription subscription = subscription(
                 EnumSet.allOf(DayOfWeek.class),
                 null,
@@ -47,7 +48,7 @@ class AlertSubscriptionTest {
     @Test
     @DisplayName("쿨다운 동안 재평가를 막고 시간이 지나면 다시 허용한다")
     void enforcesCooldown() {
-        LocalDateTime now = LocalDateTime.of(2026, 7, 20, 12, 0);
+        LocalDateTime now = LocalDateTime.of(2026, Month.JULY, 20, 12, 0);
         AlertSubscription subscription = subscription(
                 EnumSet.allOf(DayOfWeek.class), null, null, null, null, now);
         subscription.markTriggered(now);

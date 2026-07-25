@@ -60,6 +60,7 @@ public class UserPlace {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @SuppressWarnings("java:S107") // These fields are the persisted identity and details of one place.
     public static UserPlace create(
             Long userId,
             String placeKey,

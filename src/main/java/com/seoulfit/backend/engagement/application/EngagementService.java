@@ -14,6 +14,7 @@ import com.seoulfit.backend.trigger.application.port.in.EvaluateTriggerUseCase;
 import com.seoulfit.backend.trigger.application.port.in.dto.LocationTriggerCommand;
 import com.seoulfit.backend.trigger.application.port.in.dto.TriggerEvaluationResult;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class EngagementService {
+
+    private static final ZoneId APPLICATION_ZONE = ZoneId.systemDefault();
 
     private final UserPlaceRepository userPlaceRepository;
     private final SavedZoneRepository savedZoneRepository;
@@ -40,7 +43,7 @@ public class EngagementService {
 
     @Transactional
     public UserPlace saveFavorite(Long userId, PlaceRequest request) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(APPLICATION_ZONE);
         UserPlace place = upsertPlace(userId, request, now);
         place.saveAsFavorite(now);
         return userPlaceRepository.save(place);
@@ -48,7 +51,7 @@ public class EngagementService {
 
     @Transactional
     public UserPlace markRecentlyViewed(Long userId, PlaceRequest request) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(APPLICATION_ZONE);
         UserPlace place = upsertPlace(userId, request, now);
         place.markViewed(now);
         return userPlaceRepository.save(place);
@@ -85,7 +88,7 @@ public class EngagementService {
         if (place.getLastViewedAt() == null) {
             userPlaceRepository.delete(place);
         } else {
-            place.removeFavorite(LocalDateTime.now());
+            place.removeFavorite(LocalDateTime.now(APPLICATION_ZONE));
         }
     }
 
@@ -104,7 +107,7 @@ public class EngagementService {
                 request.latitude(),
                 request.longitude(),
                 request.radiusMeters(),
-                LocalDateTime.now()));
+                LocalDateTime.now(APPLICATION_ZONE)));
     }
 
     @Transactional
@@ -119,7 +122,7 @@ public class EngagementService {
                 request.latitude(),
                 request.longitude(),
                 request.radiusMeters(),
-                LocalDateTime.now());
+                LocalDateTime.now(APPLICATION_ZONE));
         return zone;
     }
 
@@ -152,7 +155,7 @@ public class EngagementService {
                 request.quietEnd(),
                 request.cooldownMinutes(),
                 request.active(),
-                LocalDateTime.now()));
+                LocalDateTime.now(APPLICATION_ZONE)));
     }
 
     @Transactional
@@ -170,7 +173,7 @@ public class EngagementService {
                 request.quietEnd(),
                 request.cooldownMinutes(),
                 request.active(),
-                LocalDateTime.now());
+                LocalDateTime.now(APPLICATION_ZONE));
         return subscription;
     }
 
@@ -181,7 +184,7 @@ public class EngagementService {
 
     @Transactional
     public EvaluationResponse evaluateActiveSubscriptions(Long userId) {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(APPLICATION_ZONE);
         int evaluated = 0;
         int generated = 0;
         int deferred = 0;
