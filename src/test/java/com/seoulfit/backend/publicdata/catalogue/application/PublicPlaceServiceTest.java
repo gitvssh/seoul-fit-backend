@@ -24,6 +24,7 @@ import org.springframework.data.domain.Pageable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Month;
 import java.util.List;
 import java.util.Optional;
 
@@ -119,7 +120,7 @@ class PublicPlaceServiceTest {
         when(park.getLatitude()).thenReturn(37.5);
         when(park.getLongitude()).thenReturn(127.0);
         when(park.getZone()).thenReturn("성동구");
-        when(park.getUpdatedAt()).thenReturn(LocalDateTime.of(2026, 7, 26, 9, 0));
+        when(park.getUpdatedAt()).thenReturn(LocalDateTime.of(2026, Month.JULY, 26, 9, 0));
         stubIndex("park", 1L);
         when(publicDataRepository.findParkById(1L)).thenReturn(Optional.of((Object) park));
 
@@ -134,7 +135,7 @@ class PublicPlaceServiceTest {
         when(library.getXcnts()).thenReturn(37.56);
         when(library.getYdnts()).thenReturn(126.98);
         when(library.getCodeValue()).thenReturn("중구");
-        when(library.getUpdatedAt()).thenReturn(LocalDateTime.of(2026, 7, 26, 9, 0));
+        when(library.getUpdatedAt()).thenReturn(LocalDateTime.of(2026, Month.JULY, 26, 9, 0));
         stubIndex("libraries", 2L);
         when(publicDataRepository.findLibraryById(2L)).thenReturn(Optional.of((Object) library));
 
@@ -150,7 +151,7 @@ class PublicPlaceServiceTest {
         when(restaurant.getOperatingHours()).thenReturn("11:00");
         when(restaurant.getLatitude()).thenReturn(37.5);
         when(restaurant.getLongitude()).thenReturn(127.1);
-        when(restaurant.getUpdatedAt()).thenReturn(LocalDateTime.of(2026, 7, 26, 9, 0));
+        when(restaurant.getUpdatedAt()).thenReturn(LocalDateTime.of(2026, Month.JULY, 26, 9, 0));
         stubIndex("restaurants", 3L);
         when(publicDataRepository.findRestaurantById(3L)).thenReturn(Optional.of((Object) restaurant));
 
@@ -166,9 +167,9 @@ class PublicPlaceServiceTest {
         when(event.getLatitude()).thenReturn(new BigDecimal("37.51"));
         when(event.getLongitude()).thenReturn(new BigDecimal("127.01"));
         when(event.getDistrict()).thenReturn("종로구");
-        when(event.getStartDate()).thenReturn(LocalDate.of(2026, 7, 26));
-        when(event.getEndDate()).thenReturn(LocalDate.of(2026, 7, 27));
-        when(event.getUpdatedAt()).thenReturn(LocalDateTime.of(2026, 7, 26, 9, 0));
+        when(event.getStartDate()).thenReturn(LocalDate.of(2026, Month.JULY, 26));
+        when(event.getEndDate()).thenReturn(LocalDate.of(2026, Month.JULY, 27));
+        when(event.getUpdatedAt()).thenReturn(LocalDateTime.of(2026, Month.JULY, 26, 9, 0));
         stubIndex("cultural_events", 4L);
         when(publicDataRepository.findCulturalEventById(4L)).thenReturn(Optional.of((Object) event));
 
@@ -184,8 +185,8 @@ class PublicPlaceServiceTest {
         when(reservation.getY()).thenReturn("37.52");
         when(reservation.getX()).thenReturn("127.02");
         when(reservation.getAreaNm()).thenReturn("마포구");
-        when(reservation.getSvcOpnBgnDt()).thenReturn(LocalDateTime.of(2026, 7, 26, 9, 0));
-        when(reservation.getSvcOpnEndDt()).thenReturn(LocalDateTime.of(2026, 7, 26, 18, 0));
+        when(reservation.getSvcOpnBgnDt()).thenReturn(LocalDateTime.of(2026, Month.JULY, 26, 9, 0));
+        when(reservation.getSvcOpnEndDt()).thenReturn(LocalDateTime.of(2026, Month.JULY, 26, 18, 0));
         stubIndex("cultural_reservation", 5L);
         when(publicDataRepository.findCulturalReservationById(5L)).thenReturn(Optional.of((Object) reservation));
 
@@ -198,7 +199,7 @@ class PublicPlaceServiceTest {
         when(center.getLatitude()).thenReturn(37.53);
         when(center.getLongitude()).thenReturn(127.03);
         when(center.getAreaCode()).thenReturn("송파구");
-        when(center.getUpdatedAt()).thenReturn(LocalDateTime.of(2026, 7, 26, 9, 0));
+        when(center.getUpdatedAt()).thenReturn(LocalDateTime.of(2026, Month.JULY, 26, 9, 0));
         stubIndex("cooling_centers", 6L);
         when(publicDataRepository.findCoolingCenterById(6L)).thenReturn(Optional.of((Object) center));
 

@@ -9,6 +9,7 @@ import com.seoulfit.backend.notification.domain.NotificationHistory;
 import com.seoulfit.backend.notification.domain.NotificationType;
 import com.seoulfit.backend.trigger.domain.TriggerCondition;
 import java.time.LocalDateTime;
+import java.time.Month;
 import java.util.concurrent.TimeUnit;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
@@ -51,7 +52,7 @@ class NotificationSenderAdapterTest {
         when(notification.getMessage()).thenReturn("마스크를 착용하세요.");
         when(notification.getTriggerCondition()).thenReturn(TriggerCondition.AIR_QUALITY_BAD);
         when(notification.getLocationInfo()).thenReturn("서울 성동구");
-        when(notification.getSentAt()).thenReturn(LocalDateTime.of(2026, 7, 26, 9, 0));
+        when(notification.getSentAt()).thenReturn(LocalDateTime.of(2026, Month.JULY, 26, 9, 0));
     }
 
     @AfterEach

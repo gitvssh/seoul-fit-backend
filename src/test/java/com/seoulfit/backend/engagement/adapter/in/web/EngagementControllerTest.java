@@ -17,6 +17,7 @@ import com.seoulfit.backend.user.infrastructure.security.CustomUserDetails;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.Month;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,7 +54,7 @@ class EngagementControllerTest {
         controller = new EngagementController(engagementService);
         when(principal.getUserId()).thenReturn(USER_ID);
 
-        LocalDateTime now = LocalDateTime.of(2026, 7, 26, 9, 0);
+        LocalDateTime now = LocalDateTime.of(2026, Month.JULY, 26, 9, 0);
         when(place.getId()).thenReturn(11L);
         when(place.getPlaceKey()).thenReturn("park:11");
         when(place.getSourceId()).thenReturn("11");

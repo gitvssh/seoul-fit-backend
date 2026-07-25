@@ -128,8 +128,6 @@ jacocoTestReport {
         classDirectories.setFrom(files(classDirectories.files.collect {
             fileTree(dir: it, exclude: [
                 '**/BackendApplication.class',
-                '**/config/**',
-                '**/dto/**',
                 '**/domain/**/*Exception.class',
                 '**/infrastructure/batch/**'
             ])

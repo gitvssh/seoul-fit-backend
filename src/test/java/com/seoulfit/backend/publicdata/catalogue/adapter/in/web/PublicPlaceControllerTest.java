@@ -2,6 +2,8 @@ package com.seoulfit.backend.publicdata.catalogue.adapter.in.web;
 
 import com.seoulfit.backend.config.TestSecurityConfig;
 import com.seoulfit.backend.publicdata.catalogue.adapter.in.web.dto.PublicPlacePageResponse;
+import com.seoulfit.backend.publicdata.catalogue.adapter.in.web.dto.PublicPlaceResponse;
+import com.seoulfit.backend.publicdata.catalogue.adapter.in.web.dto.PublicPlaceSitemapEntry;
 import com.seoulfit.backend.publicdata.catalogue.adapter.in.web.dto.PublicPlaceSummaryResponse;
 import com.seoulfit.backend.publicdata.catalogue.application.PublicPlaceService;
 import org.junit.jupiter.api.DisplayName;
@@ -13,7 +15,10 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDateTime;
+import java.time.Month;
 import java.util.List;
+import java.util.Optional;
 
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -56,5 +61,26 @@ class PublicPlaceControllerTest {
 
         mockMvc.perform(get("/api/public/places").param("category", "unknown"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("공개 sitemap과 상세 URL은 캐시 헤더를 유지하고 없는 상세는 404를 반환한다")
+    void returnsSitemapAndDetailResponses() throws Exception {
+        given(publicPlaceService.sitemapEntries("park"))
+                .willReturn(List.of(new PublicPlaceSitemapEntry(42L, LocalDateTime.of(2026, Month.JULY, 26, 9, 0))));
+        given(publicPlaceService.find("park", 42L)).willReturn(Optional.of(new PublicPlaceResponse(
+                42L, "park", "공원", "서울숲", "서울 성동구", null, null, null,
+                null, null, null, null, null, null, null, false, null)));
+        given(publicPlaceService.find("park", 999L)).willReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/public/places/sitemap").param("category", "park"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("public")))
+                .andExpect(jsonPath("$[0].id").value(42));
+        mockMvc.perform(get("/api/public/places/park/42"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("서울숲"));
+        mockMvc.perform(get("/api/public/places/park/999"))
+                .andExpect(status().isNotFound());
     }
 }
