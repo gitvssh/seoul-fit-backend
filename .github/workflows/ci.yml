@@ -33,7 +33,10 @@ permissions:
 
 concurrency:
   group: seoul-fit-backend-ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Preserve every verification run. Cancelling an in-flight self-hosted
+  # runner job produces noisy false-failure notifications and can leave a
+  # release without a completed quality gate.
+  cancel-in-progress: false
 
 env:
   LANG: C.UTF-8
