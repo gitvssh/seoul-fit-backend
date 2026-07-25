@@ -32,9 +32,9 @@ class SimpleControllerTest {
     }
 
     @Test
-    @DisplayName("Prometheus 메트릭 엔드포인트 익명 접근 차단")
-    void prometheusMetricsRejectAnonymousAccess() throws Exception {
+    @DisplayName("Prometheus 메트릭 엔드포인트 익명 수집 허용")
+    void prometheusMetricsPermitAnonymousAccess() throws Exception {
         mockMvc.perform(get("/actuator/prometheus"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isOk());
     }
 }

@@ -75,7 +75,8 @@ public class SecurityConfig {
                                     "/api/location/advanced/recommend-scale").permitAll()
                             .requestMatchers(
                                     "/actuator/health",
-                                    "/actuator/health/**").permitAll();
+                                    "/actuator/health/**",
+                                    "/actuator/prometheus").permitAll();
 
                     if (environment.acceptsProfiles(Profiles.of("local", "dev"))) {
                         auth.requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**",
@@ -85,13 +86,11 @@ public class SecurityConfig {
                         auth.requestMatchers(
                                 "/h2-console/**",
                                 "/api/admin/batch/**",
-                                "/actuator/prometheus",
                                 "/actuator/scheduledtasks").permitAll();
                     }
                     if (!environment.acceptsProfiles(Profiles.of("local", "dev"))) {
                         auth.requestMatchers(
                                 "/api/admin/**",
-                                "/actuator/prometheus",
                                 "/actuator/scheduledtasks").denyAll();
                     }
 
