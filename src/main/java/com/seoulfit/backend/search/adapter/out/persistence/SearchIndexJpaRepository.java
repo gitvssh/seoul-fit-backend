@@ -22,7 +22,7 @@ public interface SearchIndexJpaRepository extends JpaRepository<PoiSearchIndex, 
            "LOWER(p.aliases) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     Page<PoiSearchIndex> findByKeyword(@Param("keyword") String keyword, Pageable pageable);
     
-    Optional<PoiSearchIndex> findByRefTableAndRefId(String refTable, Long refId);
+    Optional<PoiSearchIndex> findFirstByRefTableAndRefIdOrderByUpdatedAtDesc(String refTable, Long refId);
 
     List<PoiSearchIndex> findAllByRefTableOrderByNameAsc(String refTable);
     

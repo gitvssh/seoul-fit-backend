@@ -40,7 +40,7 @@ public class SearchIndexRepositoryAdapter implements SearchIndexRepository {
     
     @Override
     public Optional<PoiSearchIndex> findByRefTableAndRefId(String refTable, Long refId) {
-        return jpaRepository.findByRefTableAndRefId(refTable, refId);
+        return jpaRepository.findFirstByRefTableAndRefIdOrderByUpdatedAtDesc(refTable, refId);
     }
 
     @Override
@@ -55,7 +55,7 @@ public class SearchIndexRepositoryAdapter implements SearchIndexRepository {
     
     @Override
     public void deleteByRefTableAndRefId(String refTable, Long refId) {
-        jpaRepository.findByRefTableAndRefId(refTable, refId)
+        jpaRepository.findFirstByRefTableAndRefIdOrderByUpdatedAtDesc(refTable, refId)
                      .ifPresent(jpaRepository::delete);
     }
     
