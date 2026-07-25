@@ -24,6 +24,7 @@ import com.seoulfit.backend.trigger.application.port.in.dto.TriggerEvaluationRes
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.Month;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
@@ -180,6 +181,35 @@ class EngagementServiceTest {
     }
 
     @Test
+    @DisplayName("최근 조회 이력이 없는 즐겨찾기는 저장소에서 완전히 삭제한다")
+    void deletesFavoriteWithoutRecentView() {
+        LocalDateTime now = LocalDateTime.of(2026, Month.JULY, 26, 9, 0);
+        UserPlace place = UserPlace.create(
+                1L, "park:1", "1", "park", "공원", "서울", 37.56, 126.97, now);
+        place.saveAsFavorite(now);
+        when(userPlaceRepository.findById(7L)).thenReturn(Optional.of(place));
+
+        service.removeFavorite(1L, 7L);
+
+        verify(userPlaceRepository).delete(place);
+    }
+
+    @Test
+    @DisplayName("생활권·장소·구독 목록 조회는 각 전용 저장소에 위임한다")
+    void listsEngagementResources() {
+        when(userPlaceRepository.findByUserIdAndFavoriteTrueOrderBySavedAtDesc(1L)).thenReturn(List.of());
+        when(userPlaceRepository.findTop50ByUserIdAndLastViewedAtIsNotNullOrderByLastViewedAtDesc(1L))
+                .thenReturn(List.of());
+        when(savedZoneRepository.findByUserIdOrderByCreatedAtDesc(1L)).thenReturn(List.of());
+        when(alertSubscriptionRepository.findByUserIdOrderByCreatedAtDesc(1L)).thenReturn(List.of());
+
+        assertThat(service.favorites(1L)).isEmpty();
+        assertThat(service.recentPlaces(1L)).isEmpty();
+        assertThat(service.zones(1L)).isEmpty();
+        assertThat(service.subscriptions(1L)).isEmpty();
+    }
+
+    @Test
     @DisplayName("생활권은 중복 이름을 거부하고 새 이름은 저장한다")
     void createsZoneWithUniqueLabel() {
         ZoneRequest request = new ZoneRequest("집", 37.56, 126.97, 1500);
@@ -210,6 +240,21 @@ class EngagementServiceTest {
 
         assertThat(updated.getLabel()).isEqualTo("회사");
         assertThat(updated.getRadiusMeters()).isEqualTo(1200);
+    }
+
+    @Test
+    @DisplayName("생활권 업데이트는 다른 생활권과 이름이 겹치면 거부한다")
+    void rejectsZoneUpdateWithDuplicateLabel() {
+        LocalDateTime now = LocalDateTime.of(2026, Month.JULY, 26, 9, 0);
+        SavedZone zone = SavedZone.create(1L, "집", 37.56, 126.97, 1500, now);
+        ReflectionTestUtils.setField(zone, "id", 8L);
+        ZoneRequest request = new ZoneRequest("회사", 37.50, 127.03, 1200);
+        when(savedZoneRepository.findByIdAndUserId(8L, 1L)).thenReturn(Optional.of(zone));
+        when(savedZoneRepository.existsByUserIdAndLabelAndIdNot(1L, "회사", 8L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.updateZone(1L, 8L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("같은 이름의 생활권이 이미 있습니다.");
     }
 
     @Test
@@ -245,6 +290,26 @@ class EngagementServiceTest {
 
         assertThatThrownBy(() -> service.updateSubscription(1L, 9L, subscriptionRequest(10L)))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("같은 생활권의 구독은 갱신할 수 있고 삭제 시 소유한 구독만 제거한다")
+    void updatesAndDeletesOwnedSubscription() {
+        LocalDateTime now = LocalDateTime.of(2026, Month.JULY, 26, 9, 0);
+        AlertSubscription subscription = AlertSubscription.create(
+                1L, 8L, AlertRuleType.AIR_QUALITY, EnumSet.allOf(DayOfWeek.class),
+                null, null, null, null, 60, true, now);
+        when(alertSubscriptionRepository.findByIdAndUserId(9L, 1L)).thenReturn(Optional.of(subscription));
+        SubscriptionRequest request = new SubscriptionRequest(
+                8L, AlertRuleType.AIR_QUALITY, EnumSet.of(DayOfWeek.MONDAY),
+                LocalTime.of(8, 0), LocalTime.of(17, 0), null, null, 120, false);
+
+        AlertSubscription updated = service.updateSubscription(1L, 9L, request);
+        service.deleteSubscription(1L, 9L);
+
+        assertThat(updated.getCooldownMinutes()).isEqualTo(120);
+        assertThat(updated.isActive()).isFalse();
+        verify(alertSubscriptionRepository).delete(subscription);
     }
 
     @Test
