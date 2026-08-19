@@ -52,7 +52,6 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: gradle
       - name: Test and generate the JaCoCo baseline
         # The repository's dormant 70% whole-code verification currently
         # measures about 31%. Keep that target intact, publish the real report
@@ -72,7 +71,6 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          cache: gradle
       - name: Rebuild scanner inputs
         run: ./gradlew test jacocoTestReport --no-daemon
       - name: Scan

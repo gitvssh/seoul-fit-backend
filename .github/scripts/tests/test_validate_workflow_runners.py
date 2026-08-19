@@ -40,3 +40,21 @@ class ValidateWorkflowRunnersTest(TestCase):
         )
         self.assertTrue(dynamic)
         self.assertTrue(multiline)
+
+    def test_rejects_actions_storage(self) -> None:
+        cases = (
+            "steps:\n  - uses: actions/cache@v4\n",
+            "steps:\n  - uses: actions/upload-artifact@v4\n",
+            "steps:\n  - uses: actions/download-artifact@v4\n",
+            "steps:\n  - uses: actions/setup-java@v5\n    with:\n      cache: gradle\n",
+            "steps:\n  - run: docker buildx build --cache-to type=gha .\n",
+        )
+        for storage_step in cases:
+            with self.subTest(storage_step=storage_step):
+                errors = self.validate(
+                    "jobs:\n"
+                    "  test:\n"
+                    "    runs-on: homelab-seoul-fit-backend\n"
+                    f"    {storage_step}"
+                )
+                self.assertTrue(any("forbidden" in error for error in errors))

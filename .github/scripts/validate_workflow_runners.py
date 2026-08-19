@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Enforce a single repository-scoped ARC runner label in Actions workflows."""
+"""Enforce repository-scoped ARC runners and zero Actions storage."""
 
 from __future__ import annotations
 
@@ -11,6 +11,15 @@ from pathlib import Path
 RUNS_ON = re.compile(r"^\s*runs-on:\s*([^#]*?)(?:\s+#.*)?$")
 FORBIDDEN = re.compile(
     r"\b(?:ubuntu|windows|macos)-(?:latest|\d[\w.-]*)\b", re.IGNORECASE
+)
+FORBIDDEN_STORAGE = (
+    (re.compile(r"\buses:\s*actions/cache@", re.IGNORECASE), "actions/cache"),
+    (
+        re.compile(r"\buses:\s*actions/(?:upload|download)-artifact@", re.IGNORECASE),
+        "Actions artifact storage",
+    ),
+    (re.compile(r"^\s*cache:\s*", re.IGNORECASE), "setup action cache"),
+    (re.compile(r"\btype=gha\b", re.IGNORECASE), "BuildKit gha cache"),
 )
 
 
@@ -28,6 +37,13 @@ def violations(workflow_dir: Path, expected_label: str) -> list[str]:
         text = path.read_text(encoding="utf-8")
         if FORBIDDEN.search(text):
             errors.append(f"{path}: GitHub-hosted runner label is forbidden")
+
+        for line_number, line in enumerate(text.splitlines(), start=1):
+            for pattern, description in FORBIDDEN_STORAGE:
+                if pattern.search(line):
+                    errors.append(
+                        f"{path}:{line_number}: {description} is forbidden"
+                    )
 
         labels = []
         for line_number, line in enumerate(text.splitlines(), start=1):
@@ -57,7 +73,10 @@ def main() -> int:
         print("\n".join(errors), file=sys.stderr)
         return 1
 
-    print(f"All workflows use the repository ARC label {sys.argv[1]!r}.")
+    print(
+        f"All workflows use the repository ARC label {sys.argv[1]!r} "
+        "and avoid Actions cache/artifact storage."
+    )
     return 0
 
 
