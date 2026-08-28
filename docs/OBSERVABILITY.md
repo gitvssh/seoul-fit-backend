@@ -40,10 +40,16 @@ local. Ambient `KUBERNETES_SERVICE_HOST` alone is not a workload marker because
 CI processes can themselves run inside Kubernetes. Local and test processes
 without the explicit Pod UID remain usable.
 
-All stdout records carry `log_schema=spring_boot_otel_json_v1`, `log_category`, and
-the five identity fields. Records written inside an observed request or job
-also carry normalized `trace_id` and `span_id`. These high-cardinality values
-remain JSON fields and must not become Loki labels.
+All stdout records carry `log_schema=spring_boot_otel_json_v1`, `log_category`, the
+five identity fields, and exactly one normalized `trace_id`/`span_id` pair. The
+final JSON customizer materializes both keys as empty strings when there is no
+active span. Inside an observed request or job they are lowercase, non-zero
+32/16-character hexadecimal IDs. Raw camel-case and snake-case MDC or fluent
+aliases are removed before the customizer's private members are renamed, so a
+record cannot carry duplicate correlation keys or bypass the sanitizer. These
+high-cardinality values remain JSON fields and must not become Loki labels.
+Spring's generic structured context output is disabled; the final customizer is
+the only path from tracing MDC to stdout.
 
 The container's exact first record is the fixed `homelab-runtime-start-v1`
 marker. The entrypoint emits it only after validating the deployed identity and

@@ -12,6 +12,12 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 APPLICATION_CONFIG = REPO_ROOT / "src/main/resources/application.yml"
+STRUCTURED_LOG_SANITIZER = (
+    REPO_ROOT / "src/main/java/com/seoulfit/backend/config/StructuredLogSanitizer.java"
+)
+OBSERVABILITY_RUNTIME_TEST = (
+    REPO_ROOT / "src/test/java/com/seoulfit/backend/config/ObservabilityRuntimeTest.java"
+)
 BASE_DEPLOYMENT = REPO_ROOT / "infra/k8s/seoul-fit-backend/base/deployment.yaml"
 DOCKERFILE = REPO_ROOT / "Dockerfile"
 ENTRYPOINT = REPO_ROOT / "infra/runtime/seoul-fit-backend-entrypoint.sh"
@@ -37,8 +43,39 @@ def validate_base() -> None:
         raise ContractError(f"application log_schema must be exactly {LOG_SCHEMA!r}")
     if "customizer: com.seoulfit.backend.config.StructuredLogSanitizer" not in application_source:
         raise ContractError("application must sanitize the final structured-log output boundary")
+    if "context:\n        include: false" not in application_source:
+        raise ContractError("raw MDC and fluent context members must be disabled")
     if "banner-mode: off" not in application_source:
         raise ContractError("Spring's plaintext startup banner must be disabled")
+    if "traceId: trace_id" in application_source or "spanId: span_id" in application_source:
+        raise ContractError("trace keys must be materialized by the final JSON customizer")
+
+    sanitizer_source = STRUCTURED_LOG_SANITIZER.read_text(encoding="utf-8")
+    for required in (
+        "members.add(SAFE_TRACE_ID_MEMBER",
+        "members.add(SAFE_SPAN_ID_MEMBER",
+        'case SAFE_TRACE_ID_MEMBER -> "trace_id"',
+        'case SAFE_SPAN_ID_MEMBER -> "span_id"',
+        'new TraceContext("", "")',
+        'context.get("traceId")',
+        'context.get("spanId")',
+    ):
+        if required not in sanitizer_source:
+            raise ContractError(f"structured log sanitizer is missing {required!r}")
+
+    runtime_test_source = OBSERVABILITY_RUNTIME_TEST.read_text(encoding="utf-8")
+    for required in (
+        "emitsAnExplicitEmptyTracePairWithoutAnActiveSpan",
+        'json.has("trace_id")',
+        'json.has("span_id")',
+        'json.has("traceId")',
+        'json.has("spanId")',
+        "TRACE_KEY_COLLISION_SENTINEL",
+        'matches("(?!0{32})[0-9a-f]{32}")',
+        'matches("(?!0{16})[0-9a-f]{16}")',
+    ):
+        if required not in runtime_test_source:
+            raise ContractError(f"structured log runtime regression is missing {required!r}")
 
     entrypoint = ENTRYPOINT.read_text(encoding="utf-8")
     marker = "printf '%s\\n' 'homelab-runtime-start-v1'"

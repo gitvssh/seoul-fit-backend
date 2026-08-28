@@ -34,6 +34,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.SpringBootConfiguration;
@@ -85,6 +86,8 @@ class ObservabilityRuntimeTest {
     private static final Logger log = LoggerFactory.getLogger(ObservabilityRuntimeTest.class);
     private static final Logger securityOutputLog =
             LoggerFactory.getLogger("com.seoulfit.backend.observability.security-output-probe");
+    private static final String RFC3339_TIMESTAMP =
+            "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,9})?(?:Z|[+-]\\d{2}:\\d{2})$";
     private static final String SQL_EXCEPTION_SENTINEL = "sql_exception_secret_probe_7d410d";
     private static final String SQL_BOUND_VALUE_SENTINEL = "sql_bound_value_secret_731bac";
     private static final String RUNTIME_EXCEPTION_SENTINEL = "token=must-not-appear-runtime-614c7f";
@@ -93,6 +96,8 @@ class ObservabilityRuntimeTest {
     private static final String LOG_THROWABLE_SENTINEL = "token=must-not-appear-log-throwable-b3102a";
     private static final String LOG_HEADER_SENTINEL = "Bearer must-not-appear-log-header-577d9e";
     private static final String LOG_BODY_SENTINEL = "must-not-appear-log-body-f8106c";
+    private static final String TRACE_KEY_COLLISION_SENTINEL =
+            "must-not-appear-trace-key-collision-802e0d";
 
     @Autowired
     private Tracer tracer;
@@ -170,7 +175,7 @@ class ObservabilityRuntimeTest {
                 .orElseThrow();
         JsonNode json = objectMapper.readTree(jsonLine);
 
-        assertThat(json.path("@timestamp").asText()).isNotBlank();
+        assertThat(json.path("@timestamp").asText()).matches(RFC3339_TIMESTAMP);
         assertThat(json.path("level").asText()).isEqualTo("INFO");
         assertThat(json.path("log_schema").asText()).isEqualTo("spring_boot_otel_json_v1");
         assertThat(json.path("log_category").asText()).isEqualTo("application");
@@ -181,8 +186,63 @@ class ObservabilityRuntimeTest {
         assertThat(json.path("deployment_environment_name").asText()).isEqualTo("test");
         assertThat(json.path("trace_id").asText()).isEqualTo(expectedTraceId);
         assertThat(json.path("span_id").asText()).isEqualTo(expectedSpanId);
+        assertThat(json.path("trace_id").asText()).matches("(?!0{32})[0-9a-f]{32}");
+        assertThat(json.path("span_id").asText()).matches("(?!0{16})[0-9a-f]{16}");
         assertThat(json.has("traceId")).isFalse();
         assertThat(json.has("spanId")).isFalse();
+        assertExactlyOneMember(jsonLine, "trace_id");
+        assertExactlyOneMember(jsonLine, "span_id");
+        assertThat(jsonLine).doesNotContain("\"traceId\":", "\"spanId\":");
+    }
+
+    @Test
+    void emitsAnExplicitEmptyTracePairWithoutAnActiveSpan(CapturedOutput output) throws Exception {
+        assertThat(tracer.currentSpan()).isNull();
+        int outputStart = output.getAll().length();
+
+        MDC.put("trace_id", TRACE_KEY_COLLISION_SENTINEL);
+        MDC.put("span_id", TRACE_KEY_COLLISION_SENTINEL);
+        try {
+            log.atInfo()
+                    .addKeyValue("trace_id", TRACE_KEY_COLLISION_SENTINEL)
+                    .addKeyValue("span_id", TRACE_KEY_COLLISION_SENTINEL)
+                    .log("observability-no-span-contract-probe");
+        } finally {
+            MDC.remove("trace_id");
+            MDC.remove("span_id");
+        }
+
+        String jsonLine = output.getAll().substring(outputStart).lines()
+                .filter(line -> line.contains("\"message\":\"observability-no-span-contract-probe\""))
+                .findFirst()
+                .orElseThrow();
+        JsonNode json = objectMapper.readTree(jsonLine);
+
+        assertThat(json.path("@timestamp").asText()).matches(RFC3339_TIMESTAMP);
+        assertThat(json.path("level").asText()).isEqualTo("INFO");
+        assertThat(json.path("log_schema").asText()).isEqualTo("spring_boot_otel_json_v1");
+        assertThat(json.path("log_category").asText()).isEqualTo("application");
+        assertThat(json.path("service_name").asText()).isEqualTo("seoul-fit-backend");
+        assertThat(json.path("service_namespace").asText()).isEqualTo("seoul-fit");
+        assertThat(json.path("service_version").asText()).isEqualTo("test-build-617f203");
+        assertThat(json.path("service_instance_id").asText()).isEqualTo("test-pod-uid");
+        assertThat(json.path("deployment_environment_name").asText()).isEqualTo("test");
+        assertThat(json.has("trace_id")).isTrue();
+        assertThat(json.has("span_id")).isTrue();
+        assertThat(json.path("trace_id").asText()).isEmpty();
+        assertThat(json.path("span_id").asText()).isEmpty();
+        assertThat(json.has("traceId")).isFalse();
+        assertThat(json.has("spanId")).isFalse();
+        assertExactlyOneMember(jsonLine, "trace_id");
+        assertExactlyOneMember(jsonLine, "span_id");
+        assertThat(jsonLine).doesNotContain("\"traceId\":", "\"spanId\":");
+        assertThat(jsonLine).doesNotContain(TRACE_KEY_COLLISION_SENTINEL);
+    }
+
+    private static void assertExactlyOneMember(String jsonLine, String memberName) {
+        String token = "\"" + memberName + "\":";
+        assertThat(jsonLine.indexOf(token)).isGreaterThanOrEqualTo(0);
+        assertThat(jsonLine.lastIndexOf(token)).isEqualTo(jsonLine.indexOf(token));
     }
 
     @Test

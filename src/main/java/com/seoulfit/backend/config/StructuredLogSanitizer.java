@@ -3,6 +3,7 @@ package com.seoulfit.backend.config;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.IThrowableProxy;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 import org.springframework.boot.json.JsonWriter;
@@ -21,6 +22,10 @@ public final class StructuredLogSanitizer
         implements StructuredLoggingJsonMembersCustomizer<ILoggingEvent> {
 
     private static final String SAFE_MESSAGE_MEMBER = "safe_message";
+    private static final String SAFE_TRACE_ID_MEMBER = "safe_trace_id";
+    private static final String SAFE_SPAN_ID_MEMBER = "safe_span_id";
+    private static final Pattern TRACE_ID = Pattern.compile("(?!0{32})[0-9a-f]{32}");
+    private static final Pattern SPAN_ID = Pattern.compile("(?!0{16})[0-9a-f]{16}");
     private static final Set<String> ALLOWED_MEMBER_NAMES = Set.of(
             "@timestamp",
             "@version",
@@ -29,10 +34,8 @@ public final class StructuredLogSanitizer
             "thread_name",
             "level",
             "level_value",
-            "traceId",
-            "spanId",
-            "trace_id",
-            "span_id",
+            SAFE_TRACE_ID_MEMBER,
+            SAFE_SPAN_ID_MEMBER,
             "log_schema",
             "log_category",
             "service_name",
@@ -46,10 +49,37 @@ public final class StructuredLogSanitizer
     @Override
     public void customize(JsonWriter.Members<ILoggingEvent> members) {
         members.add(SAFE_MESSAGE_MEMBER, StructuredLogSanitizer::safeMessage);
+        members.add(SAFE_TRACE_ID_MEMBER, event -> traceContext(event).traceId());
+        members.add(SAFE_SPAN_ID_MEMBER, event -> traceContext(event).spanId());
         members.add("error_type", StructuredLogSanitizer::boundedErrorType).whenHasLength();
         members.applyingPathFilter(path -> !ALLOWED_MEMBER_NAMES.contains(path.toUnescapedString()));
-        members.applyingNameProcessor((path, existingName) ->
-                SAFE_MESSAGE_MEMBER.equals(existingName) ? "message" : existingName);
+        members.applyingNameProcessor(
+                (path, existingName) -> canonicalMemberName(existingName));
+    }
+
+    private static String canonicalMemberName(String existingName) {
+        return switch (existingName) {
+            case SAFE_MESSAGE_MEMBER -> "message";
+            case SAFE_TRACE_ID_MEMBER -> "trace_id";
+            case SAFE_SPAN_ID_MEMBER -> "span_id";
+            default -> existingName;
+        };
+    }
+
+    private static TraceContext traceContext(ILoggingEvent event) {
+        Map<String, String> context = event.getMDCPropertyMap();
+        if (context == null) {
+            return TraceContext.EMPTY;
+        }
+        String traceId = context.get("traceId");
+        String spanId = context.get("spanId");
+        if (traceId == null
+                || spanId == null
+                || !TRACE_ID.matcher(traceId).matches()
+                || !SPAN_ID.matcher(spanId).matches()) {
+            return TraceContext.EMPTY;
+        }
+        return new TraceContext(traceId, spanId);
     }
 
     private static String safeMessage(ILoggingEvent event) {
@@ -69,5 +99,9 @@ public final class StructuredLogSanitizer
         int packageSeparator = className.lastIndexOf('.');
         String simpleName = className.substring(packageSeparator + 1);
         return SAFE_ERROR_TYPE.matcher(simpleName).matches() ? simpleName : "Throwable";
+    }
+
+    private record TraceContext(String traceId, String spanId) {
+        private static final TraceContext EMPTY = new TraceContext("", "");
     }
 }

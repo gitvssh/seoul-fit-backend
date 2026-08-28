@@ -145,6 +145,8 @@ logging:
       # This final formatter boundary removes raw WARN/ERROR text, stack traces,
       # and unapproved MDC/key-value fields before bytes reach stdout.
       customizer: com.seoulfit.backend.config.StructuredLogSanitizer
+      context:
+        include: false
       add:
         log_schema: spring_boot_otel_json_v1
         log_category: application
@@ -153,10 +155,6 @@ logging:
         service_version: ${OTEL_SERVICE_VERSION:${spring.application.version}}
         service_instance_id: ${OTEL_SERVICE_INSTANCE_ID:standalone}
         deployment_environment_name: ${DEPLOYMENT_ENVIRONMENT_NAME:local}
-      rename:
-        traceId: trace_id
-        spanId: span_id
-
 management:
   tracing:
     sampling:
