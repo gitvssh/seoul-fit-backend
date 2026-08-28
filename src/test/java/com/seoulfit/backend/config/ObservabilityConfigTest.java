@@ -91,6 +91,14 @@ class ObservabilityConfigTest {
     }
 
     @Test
+    void ignoresAmbientKubernetesServiceHostWithoutExplicitWorkloadMarker() {
+        new ApplicationContextRunner()
+                .withUserConfiguration(ObservabilityConfig.class)
+                .withPropertyValues("KUBERNETES_SERVICE_HOST=10.43.0.1")
+                .run(context -> assertThat(context).hasNotFailed());
+    }
+
+    @Test
     void kubernetesPodMarkerPreventsLocalIdentityBypass() {
         new ApplicationContextRunner()
                 .withUserConfiguration(ObservabilityConfig.class)
@@ -110,7 +118,7 @@ class ObservabilityConfigTest {
     }
 
     @Test
-    void kubernetesServiceMarkerRequiresExactPodUidIdentity() {
+    void kubernetesPodMarkerRequiresExactPodUidIdentity() {
         new ApplicationContextRunner()
                 .withUserConfiguration(ObservabilityConfig.class)
                 .withPropertyValues(
@@ -120,8 +128,7 @@ class ObservabilityConfigTest {
                         "OTEL_SERVICE_NAMESPACE=seoul-fit",
                         "OTEL_SERVICE_VERSION=sha256:0123456789abcdef",
                         "OTEL_SERVICE_INSTANCE_ID=reported-pod-uid",
-                        "K8S_POD_UID=actual-pod-uid",
-                        "KUBERNETES_SERVICE_HOST=10.43.0.1")
+                        "K8S_POD_UID=actual-pod-uid")
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(context.getStartupFailure())

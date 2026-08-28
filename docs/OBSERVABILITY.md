@@ -34,10 +34,11 @@ registered `spring_boot_otel_json_v1` contract. `K8S_POD_UID` and
 `service.instance.id` are both wired directly from `metadata.uid`; the runtime
 requires them to match. The manifest validator rejects drift. The application
 refuses to start under a non-local profile if any of the five identity values is
-empty, local, or another placeholder. A Kubernetes service marker or Pod UID
-also disables the local/test bypass, even if a profile or environment is
-misconfigured as local. Local and test processes outside Kubernetes remain
-usable.
+empty, local, or another placeholder. The explicitly injected Pod UID disables
+the local/test bypass, even if a profile or environment is misconfigured as
+local. Ambient `KUBERNETES_SERVICE_HOST` alone is not a workload marker because
+CI processes can themselves run inside Kubernetes. Local and test processes
+without the explicit Pod UID remain usable.
 
 All stdout records carry `log_schema=spring_boot_otel_json_v1`, `log_category`, and
 the five identity fields. Records written inside an observed request or job

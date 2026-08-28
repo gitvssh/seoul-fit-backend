@@ -109,12 +109,11 @@ public class ObservabilityConfig {
     InitializingBean validateDeployedObservabilityIdentity(Environment environment) {
         return () -> {
             String deploymentEnvironment = environment.getProperty("DEPLOYMENT_ENVIRONMENT_NAME", "local");
-            String kubernetesServiceHost = environment.getProperty("KUBERNETES_SERVICE_HOST");
             String podUid = environment.getProperty("K8S_POD_UID");
-            boolean kubernetesRuntime = hasText(kubernetesServiceHost) || hasText(podUid);
+            boolean deployedPod = hasText(podUid);
             boolean onlyLocalProfiles = Arrays.stream(environment.getActiveProfiles())
                     .allMatch(profile -> NON_DEPLOYED_ENVIRONMENTS.contains(profile.toLowerCase(Locale.ROOT)));
-            if (!kubernetesRuntime
+            if (!deployedPod
                     && onlyLocalProfiles
                     && NON_DEPLOYED_ENVIRONMENTS.contains(deploymentEnvironment.toLowerCase(Locale.ROOT))) {
                 return;
@@ -129,7 +128,7 @@ public class ObservabilityConfig {
                     "OTEL_SERVICE_VERSION", environment.getProperty("spring.application.version")));
             String serviceInstanceId = environment.getProperty("OTEL_SERVICE_INSTANCE_ID");
             requireIdentity("service.instance.id", serviceInstanceId);
-            if (kubernetesRuntime) {
+            if (deployedPod) {
                 requireIdentity("k8s.pod.uid", podUid);
                 if (!podUid.trim().equals(serviceInstanceId.trim())) {
                     throw new IllegalStateException("service.instance.id must equal k8s.pod.uid");
