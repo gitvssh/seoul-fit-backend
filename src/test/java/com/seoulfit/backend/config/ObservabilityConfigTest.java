@@ -6,6 +6,8 @@ import static org.mockito.Mockito.when;
 
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationPredicate;
+import io.opentelemetry.sdk.common.CompletableResultCode;
+import io.opentelemetry.sdk.trace.export.SpanExporter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.net.URI;
@@ -142,6 +144,28 @@ class ObservabilityConfigTest {
                 "https://user:password@api.example.test:8443/api-key-in-path?token=query-secret#fragment");
 
         assertThat(TelemetrySanitizer.origin(uri)).isEqualTo("https://api.example.test:8443");
+    }
+
+    @Test
+    void treatsMissingOrRelativeUrisAsUnknown() {
+        assertThat(TelemetrySanitizer.origin(null)).isEqualTo("relative-or-unknown");
+        assertThat(TelemetrySanitizer.origin(URI.create("/relative/path?token=secret")))
+                .isEqualTo("relative-or-unknown");
+    }
+
+    @Test
+    void reusesSanitizedExportersAndDelegatesTheirLifecycle() {
+        SpanExporter delegate = mock(SpanExporter.class);
+        CompletableResultCode flushResult = CompletableResultCode.ofSuccess();
+        CompletableResultCode shutdownResult = CompletableResultCode.ofSuccess();
+        when(delegate.flush()).thenReturn(flushResult);
+        when(delegate.shutdown()).thenReturn(shutdownResult);
+
+        SpanExporter sanitized = TelemetrySanitizer.sanitizeExporter(delegate);
+
+        assertThat(TelemetrySanitizer.sanitizeExporter(sanitized)).isSameAs(sanitized);
+        assertThat(sanitized.flush()).isSameAs(flushResult);
+        assertThat(sanitized.shutdown()).isSameAs(shutdownResult);
     }
 
     private static ServerRequestObservationContext serverRequest(String uri) {

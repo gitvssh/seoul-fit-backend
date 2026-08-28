@@ -20,10 +20,11 @@ import org.springframework.boot.logging.structured.StructuredLoggingJsonMembersC
 public final class StructuredLogSanitizer
         implements StructuredLoggingJsonMembersCustomizer<ILoggingEvent> {
 
+    private static final String SAFE_MESSAGE_MEMBER = "safe_message";
     private static final Set<String> ALLOWED_MEMBER_NAMES = Set.of(
             "@timestamp",
             "@version",
-            "safe_message",
+            SAFE_MESSAGE_MEMBER,
             "logger_name",
             "thread_name",
             "level",
@@ -44,11 +45,11 @@ public final class StructuredLogSanitizer
 
     @Override
     public void customize(JsonWriter.Members<ILoggingEvent> members) {
-        members.add("safe_message", StructuredLogSanitizer::safeMessage);
+        members.add(SAFE_MESSAGE_MEMBER, StructuredLogSanitizer::safeMessage);
         members.add("error_type", StructuredLogSanitizer::boundedErrorType).whenHasLength();
         members.applyingPathFilter(path -> !ALLOWED_MEMBER_NAMES.contains(path.toUnescapedString()));
         members.applyingNameProcessor((path, existingName) ->
-                "safe_message".equals(existingName) ? "message" : existingName);
+                SAFE_MESSAGE_MEMBER.equals(existingName) ? "message" : existingName);
     }
 
     private static String safeMessage(ILoggingEvent event) {

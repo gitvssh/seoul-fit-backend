@@ -215,17 +215,17 @@ class ObservabilityRuntimeTest {
                 .toList();
         assertThat(records).hasSize(2);
         assertThat(records)
-                .allSatisfy(record -> {
-                    assertThat(record.path("message").asText()).isEqualTo("Application error");
-                    assertThat(record.path("level").asText()).isEqualTo("ERROR");
-                    assertThat(record.path("log_schema").asText())
+                .allSatisfy(logRecord -> {
+                    assertThat(logRecord.path("message").asText()).isEqualTo("Application error");
+                    assertThat(logRecord.path("level").asText()).isEqualTo("ERROR");
+                    assertThat(logRecord.path("log_schema").asText())
                             .isEqualTo("spring_boot_otel_json_v1");
-                    assertThat(record.has("stack_trace")).isFalse();
-                    assertThat(record.has("exception")).isFalse();
-                    assertThat(record.has("error")).isFalse();
+                    assertThat(logRecord.has("stack_trace")).isFalse();
+                    assertThat(logRecord.has("exception")).isFalse();
+                    assertThat(logRecord.has("error")).isFalse();
                 });
-        assertThat(records).anySatisfy(record ->
-                assertThat(record.path("error_type").asText()).isEqualTo("RuntimeException"));
+        assertThat(records).anySatisfy(logRecord ->
+                assertThat(logRecord.path("error_type").asText()).isEqualTo("RuntimeException"));
     }
 
     @Test

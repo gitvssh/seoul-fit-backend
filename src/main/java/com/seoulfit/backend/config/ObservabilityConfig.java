@@ -29,9 +29,19 @@ import org.springframework.http.server.observation.ServerRequestObservationConte
 @Configuration(proxyBeanMethods = false)
 public class ObservabilityConfig {
 
-    private static final Set<String> NON_DEPLOYED_ENVIRONMENTS = Set.of("local", "test");
+    private static final String LOCAL_ENVIRONMENT = "local";
+    private static final Set<String> NON_DEPLOYED_ENVIRONMENTS = Set.of(LOCAL_ENVIRONMENT, "test");
     private static final Set<String> INVALID_IDENTITY_VALUES =
-            Set.of("", "unknown", "unset", "none", "null", "local", "test", "development", "placeholder");
+            Set.of(
+                    "",
+                    "unknown",
+                    "unset",
+                    "none",
+                    "null",
+                    LOCAL_ENVIRONMENT,
+                    "test",
+                    "development",
+                    "placeholder");
 
     @Bean
     ObservationPredicate excludeActuatorControlTraffic() {
@@ -108,7 +118,8 @@ public class ObservabilityConfig {
     @Bean
     InitializingBean validateDeployedObservabilityIdentity(Environment environment) {
         return () -> {
-            String deploymentEnvironment = environment.getProperty("DEPLOYMENT_ENVIRONMENT_NAME", "local");
+            String deploymentEnvironment =
+                    environment.getProperty("DEPLOYMENT_ENVIRONMENT_NAME", LOCAL_ENVIRONMENT);
             String podUid = environment.getProperty("K8S_POD_UID");
             boolean deployedPod = hasText(podUid);
             boolean onlyLocalProfiles = Arrays.stream(environment.getActiveProfiles())
