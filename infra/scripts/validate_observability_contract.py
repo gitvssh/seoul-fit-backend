@@ -33,6 +33,8 @@ def validate_base() -> None:
     application_source = APPLICATION_CONFIG.read_text(encoding="utf-8")
     if f"log_schema: {LOG_SCHEMA}" not in application_source:
         raise ContractError(f"application log_schema must be exactly {LOG_SCHEMA!r}")
+    if "customizer: com.seoulfit.backend.config.StructuredLogSanitizer" not in application_source:
+        raise ContractError("application must sanitize the final structured-log output boundary")
 
     source = BASE_DEPLOYMENT.read_text(encoding="utf-8")
     required_fragments = (
@@ -43,6 +45,7 @@ def validate_base() -> None:
         "metadata.annotations['observability.damecasol.com/service-version']",
         "name: OTEL_SERVICE_INSTANCE_ID",
         "fieldPath: metadata.uid",
+        "name: K8S_POD_UID",
         "name: DEPLOYMENT_ENVIRONMENT_NAME",
         "metadata.labels['app.kubernetes.io/environment']",
         "name: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
@@ -50,6 +53,12 @@ def validate_base() -> None:
     missing = [fragment for fragment in required_fragments if fragment not in source]
     if missing:
         raise ContractError(f"base deployment is missing identity wiring: {', '.join(missing)}")
+    require(
+        r"(name:\s*K8S_POD_UID\s*\n\s*valueFrom:\s*\n\s*fieldRef:\s*\n"
+        r"\s*fieldPath:\s*metadata\.uid)",
+        source,
+        "K8S_POD_UID downward API wiring",
+    )
 
 
 def validate_overlay(environment: str) -> None:
@@ -98,6 +107,7 @@ def validate_overlay(environment: str) -> None:
         f"observability.damecasol.com/log-schema: {LOG_SCHEMA}",
         f"observability.damecasol.com/service-version: {image_digest}",
         f"app.kubernetes.io/environment: {environment}",
+        "name: K8S_POD_UID",
     ):
         if expected not in rendered:
             raise ContractError(f"{environment}: rendered desired state is missing {expected!r}")

@@ -54,6 +54,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.uid
+            - name: K8S_POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
             - name: DEPLOYMENT_ENVIRONMENT_NAME
               valueFrom:
                 fieldRef:

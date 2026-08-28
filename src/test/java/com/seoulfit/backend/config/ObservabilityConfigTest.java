@@ -44,7 +44,10 @@ class ObservabilityConfigTest {
                 "OTEL_SERVICE_NAMESPACE", "service.namespace",
                 "OTEL_SERVICE_VERSION", "service.version",
                 "OTEL_SERVICE_INSTANCE_ID", "service.instance.id");
-        String[] invalidValues = {"", "local", "none", "null", "unknown", "unset", "unknown_service:java"};
+        String[] invalidValues = {
+            "", "  ", "development", "local", "none", "null", "placeholder", "test", "unknown", "unset",
+            "unknown_service:java"
+        };
 
         for (String profile : new String[] {"dev", "prod"}) {
             for (Map.Entry<String, String> target : contractNames.entrySet()) {
@@ -85,6 +88,45 @@ class ObservabilityConfigTest {
                             "DEPLOYMENT_ENVIRONMENT_NAME=" + profile)
                     .run(context -> assertThat(context).hasNotFailed());
         }
+    }
+
+    @Test
+    void kubernetesPodMarkerPreventsLocalIdentityBypass() {
+        new ApplicationContextRunner()
+                .withUserConfiguration(ObservabilityConfig.class)
+                .withPropertyValues(
+                        "spring.profiles.active=local",
+                        "DEPLOYMENT_ENVIRONMENT_NAME=local",
+                        "OTEL_SERVICE_NAME=seoul-fit-backend",
+                        "OTEL_SERVICE_NAMESPACE=seoul-fit",
+                        "OTEL_SERVICE_VERSION=sha256:0123456789abcdef",
+                        "OTEL_SERVICE_INSTANCE_ID=pod-uid-0123456789",
+                        "K8S_POD_UID=pod-uid-0123456789")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure())
+                            .hasRootCauseMessage("deployment.environment.name must identify the deployed workload");
+                });
+    }
+
+    @Test
+    void kubernetesServiceMarkerRequiresExactPodUidIdentity() {
+        new ApplicationContextRunner()
+                .withUserConfiguration(ObservabilityConfig.class)
+                .withPropertyValues(
+                        "spring.profiles.active=dev",
+                        "DEPLOYMENT_ENVIRONMENT_NAME=dev",
+                        "OTEL_SERVICE_NAME=seoul-fit-backend",
+                        "OTEL_SERVICE_NAMESPACE=seoul-fit",
+                        "OTEL_SERVICE_VERSION=sha256:0123456789abcdef",
+                        "OTEL_SERVICE_INSTANCE_ID=reported-pod-uid",
+                        "K8S_POD_UID=actual-pod-uid",
+                        "KUBERNETES_SERVICE_HOST=10.43.0.1")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure())
+                            .hasRootCauseMessage("service.instance.id must equal k8s.pod.uid");
+                });
     }
 
     @Test

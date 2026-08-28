@@ -83,10 +83,16 @@ import org.springframework.web.reactive.function.client.WebClient;
 class ObservabilityRuntimeTest {
 
     private static final Logger log = LoggerFactory.getLogger(ObservabilityRuntimeTest.class);
+    private static final Logger securityOutputLog =
+            LoggerFactory.getLogger("com.seoulfit.backend.observability.security-output-probe");
     private static final String SQL_EXCEPTION_SENTINEL = "sql_exception_secret_probe_7d410d";
     private static final String SQL_BOUND_VALUE_SENTINEL = "sql_bound_value_secret_731bac";
     private static final String RUNTIME_EXCEPTION_SENTINEL = "token=must-not-appear-runtime-614c7f";
     private static final String CLIENT_EXCEPTION_SENTINEL = "token=must-not-appear-client-3c22ea";
+    private static final String LOG_ARGUMENT_SENTINEL = "token=must-not-appear-log-argument-91c6b5";
+    private static final String LOG_THROWABLE_SENTINEL = "token=must-not-appear-log-throwable-b3102a";
+    private static final String LOG_HEADER_SENTINEL = "Bearer must-not-appear-log-header-577d9e";
+    private static final String LOG_BODY_SENTINEL = "must-not-appear-log-body-f8106c";
 
     @Autowired
     private Tracer tracer;
@@ -177,6 +183,49 @@ class ObservabilityRuntimeTest {
         assertThat(json.path("span_id").asText()).isEqualTo(expectedSpanId);
         assertThat(json.has("traceId")).isFalse();
         assertThat(json.has("spanId")).isFalse();
+    }
+
+    @Test
+    void finalJsonBoundaryDropsRawErrorArgumentsMessagesAndStacks(CapturedOutput output)
+            throws Exception {
+        int outputStart = output.getAll().length();
+
+        securityOutputLog
+                .atError()
+                .addKeyValue("authorization", LOG_HEADER_SENTINEL)
+                .addKeyValue("request_body", LOG_BODY_SENTINEL)
+                .setCause(new RuntimeException(LOG_THROWABLE_SENTINEL))
+                .log("exception-probe detail={}", LOG_ARGUMENT_SENTINEL);
+        securityOutputLog.error("oauth-direct-message={}", LOG_ARGUMENT_SENTINEL);
+
+        String emitted = output.getAll().substring(outputStart);
+        assertThat(emitted)
+                .doesNotContain(
+                        LOG_ARGUMENT_SENTINEL,
+                        LOG_THROWABLE_SENTINEL,
+                        LOG_HEADER_SENTINEL,
+                        LOG_BODY_SENTINEL,
+                        "authorization",
+                        "request_body");
+
+        List<JsonNode> records = emitted.lines()
+                .filter(line -> line.contains(
+                        "\"logger_name\":\"com.seoulfit.backend.observability.security-output-probe\""))
+                .map(this::parseJson)
+                .toList();
+        assertThat(records).hasSize(2);
+        assertThat(records)
+                .allSatisfy(record -> {
+                    assertThat(record.path("message").asText()).isEqualTo("Application error");
+                    assertThat(record.path("level").asText()).isEqualTo("ERROR");
+                    assertThat(record.path("log_schema").asText())
+                            .isEqualTo("spring_boot_otel_json_v1");
+                    assertThat(record.has("stack_trace")).isFalse();
+                    assertThat(record.has("exception")).isFalse();
+                    assertThat(record.has("error")).isFalse();
+                });
+        assertThat(records).anySatisfy(record ->
+                assertThat(record.path("error_type").asText()).isEqualTo("RuntimeException"));
     }
 
     @Test
@@ -316,6 +365,14 @@ class ObservabilityRuntimeTest {
                 .setResponseCode(200)
                 .addHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .setBody("{\"ok\":true}");
+    }
+
+    private JsonNode parseJson(String value) {
+        try {
+            return objectMapper.readTree(value);
+        } catch (Exception exception) {
+            throw new AssertionError("expected one-line JSON log", exception);
+        }
     }
 
     private List<SpanData> exportedSpans(SpanKind kind) {

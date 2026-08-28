@@ -140,6 +140,9 @@ logging:
       # so Alloy is the single ingestion path and records are never duplicated.
       console: ${LOGGING_STRUCTURED_FORMAT_CONSOLE:logstash}
     json:
+      # This final formatter boundary removes raw WARN/ERROR text, stack traces,
+      # and unapproved MDC/key-value fields before bytes reach stdout.
+      customizer: com.seoulfit.backend.config.StructuredLogSanitizer
       add:
         log_schema: spring_boot_otel_json_v1
         log_category: application

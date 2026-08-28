@@ -30,10 +30,14 @@ Every signal uses these values:
 
 The pod template annotation `observability.damecasol.com/service-version` must
 equal the overlay's image digest, and its log-schema annotation is fixed to the
-registered `spring_boot_otel_json_v1` contract. The manifest validator rejects
-drift. The application refuses to start under a non-local profile if any of the
-five identity values is empty, local, or another placeholder. Local and test
-processes keep non-Kubernetes defaults and remain usable.
+registered `spring_boot_otel_json_v1` contract. `K8S_POD_UID` and
+`service.instance.id` are both wired directly from `metadata.uid`; the runtime
+requires them to match. The manifest validator rejects drift. The application
+refuses to start under a non-local profile if any of the five identity values is
+empty, local, or another placeholder. A Kubernetes service marker or Pod UID
+also disables the local/test bypass, even if a profile or environment is
+misconfigured as local. Local and test processes outside Kubernetes remain
+usable.
 
 All stdout records carry `log_schema=spring_boot_otel_json_v1`, `log_category`, and
 the five identity fields. Records written inside an observed request or job
@@ -57,6 +61,12 @@ remain JSON fields and must not become Loki labels.
   datasource-proxy and P6Spy dependencies are absent, and database exception
   handling logs only a safe exception category rather than driver messages or
   bound values.
+- A Spring Boot structured-logging customizer is the final stdout boundary. It
+  removes stack traces and unapproved MDC/key/value fields, replaces every
+  WARN/ERROR message with a bounded category, and retains only `logger_name`
+  plus a bounded `error_type` when a throwable exists. This also covers legacy
+  call sites that interpolate `Throwable.getMessage()` before Logback receives
+  the event.
 - Observation errors are bounded before tracing and every concrete OTel exporter
   removes exception events and raw status descriptions. Runtime, JDBC, and HTTP
   client exception messages and stack traces therefore cannot cross the export
