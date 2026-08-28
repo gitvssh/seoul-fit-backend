@@ -108,6 +108,8 @@ docs/BACKLOG.md                      deferred work and rationale
 
 계획적으로 미룬 작업과 현재 제한은 [`docs/BACKLOG.md`](docs/BACKLOG.md)에 기록합니다.
 관측 신호의 공통 식별자와 배포 검증 방법은 [`docs/OBSERVABILITY.md`](docs/OBSERVABILITY.md)에 있습니다.
+소스 SHA부터 Harbor digest와 환경별 `service.version` 핀까지의 안전한 로컬 릴리스 절차는
+[`docs/IMMUTABLE_RELEASE.md`](docs/IMMUTABLE_RELEASE.md)에 있습니다.
 
 ## License
 
