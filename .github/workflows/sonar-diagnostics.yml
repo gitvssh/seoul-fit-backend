@@ -1,0 +1,24 @@
+name: SonarQube diagnostics
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: seoul-fit-backend-sonar-diagnostics
+  cancel-in-progress: true
+
+jobs:
+  report:
+    name: Report current new-code issues
+    runs-on: homelab-seoul-fit-backend
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with: {persist-credentials: false, fetch-depth: 1}
+      - run: python3 .github/scripts/report_sonar_issues.py seoul-fit-backend
+        env:
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
