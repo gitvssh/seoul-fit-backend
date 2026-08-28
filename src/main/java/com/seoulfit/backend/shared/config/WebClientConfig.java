@@ -38,7 +38,7 @@ public class WebClientConfig {
      * @return 설정된 WebClient 인스턴스
      */
     @Bean
-    public WebClient webClient() {
+    public WebClient webClient(WebClient.Builder builder) {
         // HTTP 클라이언트 설정
         HttpClient httpClient = HttpClient.create()
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, timeoutSeconds * 1000)
@@ -47,7 +47,7 @@ public class WebClientConfig {
                     conn.addHandlerLast(new ReadTimeoutHandler(timeoutSeconds, TimeUnit.SECONDS))
                         .addHandlerLast(new WriteTimeoutHandler(timeoutSeconds, TimeUnit.SECONDS)));
         
-        return WebClient.builder()
+        return builder
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .filter(logRequest())
                 .filter(logResponse())
@@ -62,7 +62,8 @@ public class WebClientConfig {
      */
     private ExchangeFilterFunction logRequest() {
         return ExchangeFilterFunction.ofRequestProcessor(clientRequest -> {
-            log.debug("API 요청: {} {}", clientRequest.method(), clientRequest.url());
+            log.debug("API 요청: {} target={}", clientRequest.method(),
+                    TelemetrySanitizer.origin(clientRequest.url()));
             return Mono.just(clientRequest);
         });
     }
@@ -74,7 +75,7 @@ public class WebClientConfig {
      */
     private ExchangeFilterFunction logResponse() {
         return ExchangeFilterFunction.ofResponseProcessor(clientResponse -> {
-            log.debug("API 응답: {} {}", clientResponse.statusCode(), clientResponse.headers().asHttpHeaders());
+            log.debug("API 응답: {}", clientResponse.statusCode());
             return Mono.just(clientResponse);
         });
     }
@@ -87,7 +88,7 @@ public class WebClientConfig {
     private ExchangeFilterFunction handleError() {
         return ExchangeFilterFunction.ofResponseProcessor(clientResponse -> {
             if (clientResponse.statusCode().isError()) {
-                log.error("API 호출 에러: {} {}", clientResponse.statusCode(), clientResponse.headers().asHttpHeaders());
+                log.error("API 호출 에러: {}", clientResponse.statusCode());
             }
             return Mono.just(clientResponse);
         });

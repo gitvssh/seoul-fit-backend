@@ -13,10 +13,14 @@ spec:
       app.kubernetes.io/name: seoul-fit-backend
   template:
     metadata:
+      annotations:
+        observability.damecasol.com/log-schema: spring_boot_otel_json_v1
+        observability.damecasol.com/service-version: PLACEHOLDER
       labels:
         app.kubernetes.io/name: seoul-fit-backend
         app.kubernetes.io/component: backend
         app.kubernetes.io/part-of: seoul-fit
+        app.kubernetes.io/environment: PLACEHOLDER
     spec:
       imagePullSecrets:
         - name: seoul-fit-backend-harbor-pull
@@ -37,6 +41,29 @@ spec:
           envFrom:
             - secretRef:
                 name: seoul-fit-backend-env
+          env:
+            - name: OTEL_SERVICE_NAME
+              value: seoul-fit-backend
+            - name: OTEL_SERVICE_NAMESPACE
+              value: seoul-fit
+            - name: OTEL_SERVICE_VERSION
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.annotations['observability.damecasol.com/service-version']
+            - name: OTEL_SERVICE_INSTANCE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
+            - name: DEPLOYMENT_ENVIRONMENT_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['app.kubernetes.io/environment']
+            - name: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+              value: http://otel-collector-opentelemetry-collector.observability.svc.cluster.local:4318/v1/traces
+            - name: OTEL_TRACES_EXPORT_ENABLED
+              value: "true"
+            - name: OBSERVABILITY_TRACING_SAMPLING_PROBABILITY
+              value: "0.1"
           readinessProbe:
             httpGet:
               path: /actuator/health

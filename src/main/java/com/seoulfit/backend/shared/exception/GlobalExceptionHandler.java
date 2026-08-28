@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -126,12 +127,25 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
     }
 
+    @ExceptionHandler(DataAccessException.class)
+    public ResponseEntity<Map<String, Object>> handleDataAccessException(DataAccessException ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "서버 내부 오류가 발생했습니다.");
+
+        // JDBC driver messages can contain SQL text and bound values. Retain a
+        // useful error category without exporting the exception or its message.
+        log.error("Database operation failed: type={}", ex.getClass().getSimpleName());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
         Map<String, Object> response = new HashMap<>();
         response.put("message", "서버 내부 오류가 발생했습니다.");
 
-        log.error("Unexpected error: ", ex);
+        // A generic exception message/stack can carry headers, bodies, SQL, or
+        // JDBC bound values. Trace correlation keeps the safe type actionable.
+        log.error("Unexpected request failure: type={}", ex.getClass().getSimpleName());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 }

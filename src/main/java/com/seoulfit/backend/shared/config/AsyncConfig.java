@@ -3,6 +3,7 @@ package com.seoulfit.backend.config;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.support.ContextPropagatingTaskDecorator;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -35,6 +36,7 @@ public class AsyncConfig {
         executor.setMaxPoolSize(10);
         executor.setQueueCapacity(100);
         executor.setThreadNamePrefix("Seoul Fit-Async-");
+        executor.setTaskDecorator(new ContextPropagatingTaskDecorator());
         executor.setRejectedExecutionHandler((r, executor1) -> {
             log.warn("비동기 작업 거부됨: {}", r.toString());
         });

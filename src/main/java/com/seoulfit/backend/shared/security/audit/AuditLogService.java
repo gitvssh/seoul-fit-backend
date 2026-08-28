@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 /**
  * 보안 감사 로그 서비스
@@ -34,6 +35,7 @@ public class AuditLogService {
 
     private final AuditLogRepository auditLogRepository;
     private final ObjectMapper objectMapper;
+    private final Executor taskExecutor;
 
     /**
      * 감사 로그 기록
@@ -63,9 +65,9 @@ public class AuditLogService {
                 }
                 
             } catch (Exception e) {
-                log.error("Failed to save audit log", e);
+                log.error("Failed to save audit log: type={}", e.getClass().getSimpleName());
             }
-        });
+        }, taskExecutor);
     }
 
     /**

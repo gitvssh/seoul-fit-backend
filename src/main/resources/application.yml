@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: seoul-fit-backend
+    group: seoul-fit
+    version: ${OTEL_SERVICE_VERSION:development}
+  reactor:
+    context-propagation: auto
   jpa:
     open-in-view: false
     properties:
@@ -123,3 +127,60 @@ logging:
   level:
     com.seoulfit.backend: INFO
     org.springframework.web.client: WARN
+    # Deployed profiles never emit statements or bound values. Local developers
+    # can still opt into Hibernate's explicit show-sql setting in application-local.
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: OFF
+    org.hibernate.orm.jdbc.extract: OFF
+    org.springframework.jdbc.core.JdbcTemplate: WARN
+    org.springframework.jdbc.core.StatementCreatorUtils: WARN
+  structured:
+    format:
+      # Container logs use one stdout JSON stream. OTLP log export remains disabled
+      # so Alloy is the single ingestion path and records are never duplicated.
+      console: ${LOGGING_STRUCTURED_FORMAT_CONSOLE:logstash}
+    json:
+      add:
+        log_schema: spring_boot_otel_json_v1
+        log_category: application
+        service_name: ${OTEL_SERVICE_NAME:${spring.application.name}}
+        service_namespace: ${OTEL_SERVICE_NAMESPACE:${spring.application.group}}
+        service_version: ${OTEL_SERVICE_VERSION:${spring.application.version}}
+        service_instance_id: ${OTEL_SERVICE_INSTANCE_ID:standalone}
+        deployment_environment_name: ${DEPLOYMENT_ENVIRONMENT_NAME:local}
+      rename:
+        traceId: trace_id
+        spanId: span_id
+
+management:
+  tracing:
+    sampling:
+      probability: ${OBSERVABILITY_TRACING_SAMPLING_PROBABILITY:0.1}
+    propagation:
+      produce: w3c
+      consume: w3c,b3,b3_multi
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
+      export:
+        enabled: ${OTEL_TRACES_EXPORT_ENABLED:false}
+    logging:
+      export:
+        enabled: false
+    metrics:
+      export:
+        enabled: false
+  opentelemetry:
+    resource-attributes:
+      "service.name": ${OTEL_SERVICE_NAME:${spring.application.name}}
+      "service.namespace": ${OTEL_SERVICE_NAMESPACE:${spring.application.group}}
+      "service.version": ${OTEL_SERVICE_VERSION:${spring.application.version}}
+      "service.instance.id": ${OTEL_SERVICE_INSTANCE_ID:standalone}
+      "deployment.environment.name": ${DEPLOYMENT_ENVIRONMENT_NAME:local}
+  metrics:
+    tags:
+      service_name: ${OTEL_SERVICE_NAME:${spring.application.name}}
+      service_namespace: ${OTEL_SERVICE_NAMESPACE:${spring.application.group}}
+      service_version: ${OTEL_SERVICE_VERSION:${spring.application.version}}
+      service_instance_id: ${OTEL_SERVICE_INSTANCE_ID:standalone}
+      deployment_environment_name: ${DEPLOYMENT_ENVIRONMENT_NAME:local}

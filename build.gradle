@@ -82,12 +82,8 @@ dependencies {
     // Monitoring & Metrics
     implementation 'io.micrometer:micrometer-core'
     implementation 'io.micrometer:micrometer-registry-prometheus'
-    implementation 'io.micrometer:micrometer-tracing-bridge-brave'
-    implementation 'io.zipkin.reporter2:zipkin-reporter-brave'
-    
-    // Performance Monitoring
-    implementation 'net.ttddyy:datasource-proxy:1.10'
-    implementation 'p6spy:p6spy:3.9.1'
+    implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+    implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
     
     // Test Dependencies
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -105,6 +101,14 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+    // Spring's logging system is initialized once per test JVM. Give every
+    // context the same deterministic identity so structured-log assertions do
+    // not depend on test execution order.
+    environment 'DEPLOYMENT_ENVIRONMENT_NAME', 'test'
+    environment 'OTEL_SERVICE_NAME', 'seoul-fit-backend'
+    environment 'OTEL_SERVICE_NAMESPACE', 'seoul-fit'
+    environment 'OTEL_SERVICE_VERSION', 'test-build-617f203'
+    environment 'OTEL_SERVICE_INSTANCE_ID', 'test-pod-uid'
     finalizedBy jacocoTestReport
 }
 

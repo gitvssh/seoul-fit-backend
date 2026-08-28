@@ -8,7 +8,7 @@
 - Spring Security, 카카오 단일 OAuth 2.0, JWT
 - PostgreSQL(CNPG), Flyway, Spring Data JPA
 - local 프로파일의 H2·Swagger UI
-- Spring Boot Actuator와 Prometheus 형식 메트릭
+- Spring Boot Actuator 메트릭, OpenTelemetry trace, 상관 가능한 JSON stdout 로그
 - Kubernetes, Kustomize, Argo CD, Vault Secrets Operator, Traefik Gateway API
 
 ```mermaid
@@ -107,6 +107,7 @@ docs/BACKLOG.md                      deferred work and rationale
 ```
 
 계획적으로 미룬 작업과 현재 제한은 [`docs/BACKLOG.md`](docs/BACKLOG.md)에 기록합니다.
+관측 신호의 공통 식별자와 배포 검증 방법은 [`docs/OBSERVABILITY.md`](docs/OBSERVABILITY.md)에 있습니다.
 
 ## License
 

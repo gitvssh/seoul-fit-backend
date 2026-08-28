@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.seoulfit.backend.config.TelemetrySanitizer;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.ClientHttpRequestFactory;
@@ -15,8 +17,6 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.http.converter.xml.MappingJackson2XmlHttpMessageConverter;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestTemplate;
-
-import java.util.List;
 
 /**
  * REST 클라이언트 설정
@@ -36,14 +36,10 @@ public class RestClientConfig {
      * OAuth 토큰 교환 등에 사용
      */
     @Bean
-    public RestTemplate restTemplate() {
-        RestTemplate restTemplate = new RestTemplate();
-        restTemplate.setRequestFactory(customRequestFactory());
-        
-        // 요청/응답 로깅 인터셉터 추가
-        restTemplate.setInterceptors(List.of(loggingInterceptor()));
-        
-        return restTemplate;
+    public RestTemplate restTemplate(RestTemplateBuilder builder) {
+        return builder.requestFactory(this::customRequestFactory)
+                .additionalInterceptors(loggingInterceptor())
+                .build();
     }
 
     /**
@@ -51,30 +47,27 @@ public class RestClientConfig {
      * OAuth 토큰 교환에 특화된 설정
      */
     @Bean("oauthRestTemplate")
-    public RestTemplate oauthRestTemplate() {
-        RestTemplate restTemplate = new RestTemplate();
-        restTemplate.setRequestFactory(oauthRequestFactory());
-        
-        // OAuth 요청 로깅 인터셉터
-        restTemplate.setInterceptors(List.of(oauthLoggingInterceptor()));
-        
-        return restTemplate;
+    public RestTemplate oauthRestTemplate(RestTemplateBuilder builder) {
+        return builder.requestFactory(this::oauthRequestFactory)
+                .additionalInterceptors(oauthLoggingInterceptor())
+                .build();
     }
 
     @Bean
-    public RestClient restClient() {
-        return RestClient.builder()
+    public RestClient restClient(RestClient.Builder builder) {
+        return builder
                 .requestFactory(customRequestFactory())
                 .requestInterceptor((request, body, execution) -> {
-                    log.debug("HTTP Request: {} {}", request.getMethod(), request.getURI());
+                    log.debug("HTTP Request: {} target={}", request.getMethod(),
+                            TelemetrySanitizer.origin(request.getURI()));
                     return execution.execute(request, body);
                 })
                 .build();
     }
 
     @Bean("seoulApiRestClient")
-    public RestClient seoulApiRestClient() {
-        return RestClient.builder()
+    public RestClient seoulApiRestClient(RestClient.Builder builder) {
+        return builder
                 .requestFactory(seoulApiRequestFactory())
                 .messageConverters(converters -> {
                     // XML 처리를 위한 컨버터 추가 (JavaTimeModule 포함)
@@ -92,7 +85,8 @@ public class RestClientConfig {
                     converters.add(1, jsonConverter);
                 })
                 .requestInterceptor((request, body, execution) -> {
-                    log.debug("Seoul API Request: {} {}", request.getMethod(), request.getURI());
+                    String target = TelemetrySanitizer.origin(request.getURI());
+                    log.debug("Seoul API Request: {} target={}", request.getMethod(), target);
                     try {
                         var response = execution.execute(request, body);
                         log.debug("Seoul API Response Status: {} Content-Type: {}", 
@@ -100,7 +94,8 @@ public class RestClientConfig {
                                 response.getHeaders().getContentType());
                         return response;
                     } catch (Exception e) {
-                        log.error("Seoul API Request failed: {} {}", request.getMethod(), request.getURI(), e);
+                        log.error("Seoul API Request failed: {} target={} type={}",
+                                request.getMethod(), target, e.getClass().getSimpleName());
                         throw e;
                     }
                 })
@@ -133,11 +128,12 @@ public class RestClientConfig {
      */
     private ClientHttpRequestInterceptor loggingInterceptor() {
         return (request, body, execution) -> {
-            log.debug("REST 요청: {} {}", request.getMethod(), request.getURI());
-            
+            String target = TelemetrySanitizer.origin(request.getURI());
+            log.debug("REST 요청: {} target={}", request.getMethod(), target);
+
             var response = execution.execute(request, body);
-            
-            log.debug("REST 응답: {} - {}", response.getStatusCode(), request.getURI());
+
+            log.debug("REST 응답: {} target={}", response.getStatusCode(), target);
             return response;
         };
     }
@@ -147,11 +143,12 @@ public class RestClientConfig {
      */
     private ClientHttpRequestInterceptor oauthLoggingInterceptor() {
         return (request, body, execution) -> {
-            log.info("OAuth 요청: {} {}", request.getMethod(), request.getURI());
-            
+            String target = TelemetrySanitizer.origin(request.getURI());
+            log.info("OAuth 요청: {} target={}", request.getMethod(), target);
+
             var response = execution.execute(request, body);
-            
-            log.info("OAuth 응답: {} - {}", response.getStatusCode(), request.getURI());
+
+            log.info("OAuth 응답: {} target={}", response.getStatusCode(), target);
             return response;
         };
     }
