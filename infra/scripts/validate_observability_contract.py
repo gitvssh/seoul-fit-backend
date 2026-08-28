@@ -13,6 +13,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 APPLICATION_CONFIG = REPO_ROOT / "src/main/resources/application.yml"
 BASE_DEPLOYMENT = REPO_ROOT / "infra/k8s/seoul-fit-backend/base/deployment.yaml"
+DOCKERFILE = REPO_ROOT / "Dockerfile"
+ENTRYPOINT = REPO_ROOT / "infra/runtime/seoul-fit-backend-entrypoint.sh"
 OVERLAY_ROOT = REPO_ROOT / "infra/k8s/seoul-fit-backend/overlays"
 LOG_SCHEMA = "spring_boot_otel_json_v1"
 INVALID_IDENTITY = {"", "unknown", "unset", "none", "null", "local", "development", "placeholder"}
@@ -35,6 +37,36 @@ def validate_base() -> None:
         raise ContractError(f"application log_schema must be exactly {LOG_SCHEMA!r}")
     if "customizer: com.seoulfit.backend.config.StructuredLogSanitizer" not in application_source:
         raise ContractError("application must sanitize the final structured-log output boundary")
+    if "banner-mode: off" not in application_source:
+        raise ContractError("Spring's plaintext startup banner must be disabled")
+
+    entrypoint = ENTRYPOINT.read_text(encoding="utf-8")
+    marker = "printf '%s\\n' 'homelab-runtime-start-v1'"
+    if entrypoint.count("homelab-runtime-start-v1") != 1:
+        raise ContractError("runtime marker must occur exactly once in the entrypoint")
+    for required in (
+        "OTEL_SERVICE_NAME",
+        "OTEL_SERVICE_NAMESPACE",
+        "OTEL_SERVICE_VERSION",
+        "OTEL_SERVICE_INSTANCE_ID",
+        "K8S_POD_UID",
+        "DEPLOYMENT_ENVIRONMENT_NAME",
+    ):
+        if entrypoint.find(required) < 0 or entrypoint.find(required) > entrypoint.find(marker):
+            raise ContractError(f"entrypoint must validate {required} before the marker")
+    if entrypoint.find("exec java") < entrypoint.find(marker):
+        raise ContractError("entrypoint must emit the marker before execing Java")
+
+    dockerfile = DOCKERFILE.read_text(encoding="utf-8")
+    for fragment in (
+        "FROM runtime AS runtime-contract",
+        '/usr/local/bin/seoul-fit-backend-entrypoint >"${contract_log}" 2>&1',
+        'test "$(wc -l < "${contract_log}")" -eq 2',
+        "FROM runtime AS release",
+        "COPY --from=runtime-contract /tmp/seoul-fit-backend-runtime-contract.ok",
+    ):
+        if fragment not in dockerfile:
+            raise ContractError(f"Docker runtime contract is missing {fragment!r}")
 
     source = BASE_DEPLOYMENT.read_text(encoding="utf-8")
     required_fragments = (

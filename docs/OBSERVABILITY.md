@@ -45,6 +45,15 @@ the five identity fields. Records written inside an observed request or job
 also carry normalized `trace_id` and `span_id`. These high-cardinality values
 remain JSON fields and must not become Loki labels.
 
+The container's exact first record is the fixed `homelab-runtime-start-v1`
+marker. The entrypoint emits it only after validating the deployed identity and
+immediately before it execs Java. This one raw line is bound to the exact Seoul
+Fit backend workload/container in the platform inventory; it is not a general
+plaintext exemption. Spring's banner is disabled and every later application
+record must use the JSON schema above. The release image inherits a build-time
+combined-stream contract that rejects an earlier, duplicate, or additional raw
+record.
+
 ## Runtime boundaries
 
 - W3C trace context is produced; W3C and legacy B3 context are accepted while
