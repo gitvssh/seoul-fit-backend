@@ -104,9 +104,16 @@ patches:
     def test_docker_subprocess_environment_does_not_inherit_session_secrets(
         self,
     ) -> None:
-        with mock.patch.dict(os.environ, {"SHOULD_NOT_REACH_DOCKER": "sensitive"}):
-            with release.isolated_docker_environment() as environment:
-                self.assertNotIn("SHOULD_NOT_REACH_DOCKER", environment)
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = Path(directory)
+            runtime.chmod(0o700)
+            with mock.patch.dict(
+                os.environ, {"SHOULD_NOT_REACH_DOCKER": "sensitive"}
+            ), mock.patch.object(
+                release, "canonical_private_runtime_directory", return_value=runtime
+            ):
+                with release.isolated_docker_environment() as environment:
+                    self.assertNotIn("SHOULD_NOT_REACH_DOCKER", environment)
 
     def test_failed_command_does_not_disclose_captured_output(self) -> None:
         completed = mock.Mock(
