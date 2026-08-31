@@ -77,8 +77,51 @@ RUN set -eu; \
     test "$(grep -c -x homelab-runtime-start-v1 "${contract_log}")" -eq 1; \
     test "$(sed -n '2p' "${contract_log}")" = \
       '{"log_schema":"spring_boot_otel_json_v1","event_name":"runtime.contract.after-marker"}'; \
-    touch /tmp/seoul-fit-backend-runtime-contract.ok; \
     rm -f "${contract_log}"
+
+# Exercise the real JVM as well as the entrypoint harness above. Spring JCL can
+# write dependency-discovery warnings to stderr before Logback is initialized,
+# so the contract intentionally validates the combined stream from process
+# start through graceful shutdown.
+RUN set -eu; \
+    startup_log=/tmp/seoul-fit-backend-startup-contract.log; \
+    startup_status=0; \
+    timeout -k 5s 40s env \
+      SPRING_PROFILES_ACTIVE=local \
+      SPRING_JPA_SHOW_SQL=false \
+      SPRING_TASK_SCHEDULING_ENABLED=false \
+      SEOULFIT_SCHEDULER_ENABLED=false \
+      OTEL_TRACES_EXPORT_ENABLED=false \
+      OTEL_SERVICE_NAME=seoul-fit-backend \
+      OTEL_SERVICE_NAMESPACE=seoul-fit \
+      OTEL_SERVICE_VERSION=sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef \
+      OTEL_SERVICE_INSTANCE_ID=00000000-0000-4000-8000-000000000001 \
+      K8S_POD_UID=00000000-0000-4000-8000-000000000001 \
+      DEPLOYMENT_ENVIRONMENT_NAME=dev \
+      /usr/local/bin/seoul-fit-backend-entrypoint \
+        --server.port=0 \
+        --spring.jpa.show-sql=false \
+        --spring.task.scheduling.enabled=false \
+        --seoulfit.scheduler.enabled=false \
+        >"${startup_log}" 2>&1 || startup_status=$?; \
+    test "${startup_status}" -eq 124; \
+    test "$(grep -c -x homelab-runtime-start-v1 "${startup_log}")" -eq 1; \
+    grep -q '"message":"Started BackendApplication' "${startup_log}"; \
+    awk ' \
+      NR == 1 { \
+        if ($0 != "homelab-runtime-start-v1") exit 1; \
+        next; \
+      } \
+      length($0) == 0 { next; } \
+      { \
+        if (substr($0, 1, 1) != "{" || substr($0, length($0), 1) != "}") exit 1; \
+        if (index($0, "\"log_schema\":\"spring_boot_otel_json_v1\"") == 0) exit 1; \
+        json_records++; \
+      } \
+      END { if (json_records < 1) exit 1; } \
+    ' "${startup_log}"; \
+    touch /tmp/seoul-fit-backend-runtime-contract.ok; \
+    rm -f "${startup_log}"
 
 
 FROM runtime AS release

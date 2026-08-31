@@ -11,6 +11,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+BUILD_GRADLE = REPO_ROOT / "build.gradle"
 APPLICATION_CONFIG = REPO_ROOT / "src/main/resources/application.yml"
 STRUCTURED_LOG_SANITIZER = (
     REPO_ROOT / "src/main/java/com/seoulfit/backend/config/StructuredLogSanitizer.java"
@@ -38,6 +39,18 @@ def require(pattern: str, text: str, description: str) -> str:
 
 
 def validate_base() -> None:
+    build_source = BUILD_GRADLE.read_text(encoding="utf-8")
+    if not re.search(
+        r"implementation\s*\(\s*['\"]com\.opencsv:opencsv:5\.9['\"]\s*\)\s*\{"
+        r"[^}]*exclude\s+group:\s*['\"]commons-logging['\"],\s*"
+        r"module:\s*['\"]commons-logging['\"]",
+        build_source,
+        flags=re.DOTALL,
+    ):
+        raise ContractError(
+            "opencsv must exclude legacy commons-logging from the runtime classpath"
+        )
+
     application_source = APPLICATION_CONFIG.read_text(encoding="utf-8")
     if f"log_schema: {LOG_SCHEMA}" not in application_source:
         raise ContractError(f"application log_schema must be exactly {LOG_SCHEMA!r}")
@@ -99,6 +112,12 @@ def validate_base() -> None:
         "FROM runtime AS runtime-contract",
         '/usr/local/bin/seoul-fit-backend-entrypoint >"${contract_log}" 2>&1',
         'test "$(wc -l < "${contract_log}")" -eq 2',
+        "seoul-fit-backend-startup-contract.log",
+        "timeout -k 5s 40s env",
+        "SPRING_PROFILES_ACTIVE=local",
+        "OTEL_TRACES_EXPORT_ENABLED=false",
+        'grep -q \'"message":"Started BackendApplication\'',
+        'index($0, "\\"log_schema\\":\\"spring_boot_otel_json_v1\\"")',
         "FROM runtime AS release",
         "COPY --from=runtime-contract /tmp/seoul-fit-backend-runtime-contract.ok",
     ):

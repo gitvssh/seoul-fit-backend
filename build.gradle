@@ -54,7 +54,12 @@ dependencies {
     
     // Spatial data processing (alternative to GeoTools)
     implementation 'org.locationtech.jts:jts-core:1.19.0'
-    implementation 'com.opencsv:opencsv:5.9'
+    implementation('com.opencsv:opencsv:5.9') {
+        // Spring Boot uses spring-jcl. Keeping the legacy Commons Logging API on
+        // the runtime classpath prints a plaintext discovery warning before the
+        // structured logging system starts.
+        exclude group: 'commons-logging', module: 'commons-logging'
+    }
 
     // google gson
     implementation 'com.google.code.gson:gson:2.13.1'
