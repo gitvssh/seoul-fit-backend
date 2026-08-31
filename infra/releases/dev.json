@@ -1,0 +1,8 @@
+{
+  "digest": "sha256:5b701e9dd4aa0d40db295520e21982ba2b644bd17b64af27c99b3556d2f165f6",
+  "environment": "dev",
+  "image": "registry.damecasol.com/seoul-fit/backend:8a010ccac3c1b4c365d15410b8737b47a30cd232",
+  "schema_version": 1,
+  "service_version": "sha256:5b701e9dd4aa0d40db295520e21982ba2b644bd17b64af27c99b3556d2f165f6",
+  "source_sha": "8a010ccac3c1b4c365d15410b8737b47a30cd232"
+}
