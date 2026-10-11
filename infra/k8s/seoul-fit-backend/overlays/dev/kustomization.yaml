@@ -9,7 +9,7 @@ resources:
 images:
   - name: registry.damecasol.com/seoul-fit/backend
     newName: registry.damecasol.com/seoul-fit/backend
-    digest: sha256:99005581f74bf7cb3ae07409e30d857ca6275426a035139e6b7e3b5c154504cd
+    digest: sha256:ef12fde5134720dc5b62231e7eb4513434955c67340a542f9b6144c04e1f9beb
 patches:
   - target:
       kind: Deployment
@@ -20,7 +20,7 @@ patches:
         value: 1
       - op: replace
         path: /spec/template/metadata/annotations/observability.damecasol.com~1service-version
-        value: sha256:99005581f74bf7cb3ae07409e30d857ca6275426a035139e6b7e3b5c154504cd
+        value: sha256:ef12fde5134720dc5b62231e7eb4513434955c67340a542f9b6144c04e1f9beb
       - op: replace
         path: /spec/template/metadata/labels/app.kubernetes.io~1environment
         value: dev
