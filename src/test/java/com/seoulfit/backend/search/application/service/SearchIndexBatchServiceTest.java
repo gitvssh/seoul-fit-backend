@@ -17,6 +17,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.InOrder;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
@@ -157,10 +158,13 @@ class SearchIndexBatchServiceTest {
             searchIndexBatchService.syncCoolingCentersToIndex();
             
             // then
+            InOrder inOrder = inOrder(searchIndexRepository);
+            inOrder.verify(searchIndexRepository).deleteAllByRefTable("cooling_centers");
+
             verify(publicDataQueryPort).findAllCoolingCenters();
             
             ArgumentCaptor<PoiSearchIndex> captor = ArgumentCaptor.forClass(PoiSearchIndex.class);
-            verify(searchIndexRepository, times(2)).save(captor.capture());
+            inOrder.verify(searchIndexRepository, times(2)).save(captor.capture());
             
             List<PoiSearchIndex> savedIndexes = captor.getAllValues();
             assertThat(savedIndexes).hasSize(2);
@@ -259,10 +263,13 @@ class SearchIndexBatchServiceTest {
             searchIndexBatchService.syncLibrariesToIndex();
             
             // then
+            InOrder inOrder = inOrder(searchIndexRepository);
+            inOrder.verify(searchIndexRepository).deleteAllByRefTable("libraries");
+
             verify(publicDataQueryPort).findAllLibraries();
             
             ArgumentCaptor<PoiSearchIndex> captor = ArgumentCaptor.forClass(PoiSearchIndex.class);
-            verify(searchIndexRepository, times(2)).save(captor.capture());
+            inOrder.verify(searchIndexRepository, times(2)).save(captor.capture());
             
             List<PoiSearchIndex> savedIndexes = captor.getAllValues();
             assertThat(savedIndexes.get(0).getName()).isEqualTo("서울도서관");

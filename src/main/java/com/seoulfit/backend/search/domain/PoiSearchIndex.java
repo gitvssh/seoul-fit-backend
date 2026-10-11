@@ -4,7 +4,8 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "poi_search_index")
+@Table(name = "poi_search_index",
+        uniqueConstraints = @UniqueConstraint(name = "uk_poi_search_index_ref", columnNames = {"ref_table", "ref_id"}))
 public class PoiSearchIndex {
     
     @Id

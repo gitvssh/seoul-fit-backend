@@ -4,6 +4,7 @@ import com.seoulfit.backend.search.domain.PoiSearchIndex;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -30,4 +31,8 @@ public interface SearchIndexJpaRepository extends JpaRepository<PoiSearchIndex, 
     Page<PoiSearchIndex> findAllWithPaging(Pageable pageable);
 
     Page<PoiSearchIndex> findByRefTable(String refTable, Pageable pageable);
+
+    @Modifying
+    @Query("DELETE FROM PoiSearchIndex p WHERE p.refTable = :refTable")
+    void deleteAllByRefTable(@Param("refTable") String refTable);
 }

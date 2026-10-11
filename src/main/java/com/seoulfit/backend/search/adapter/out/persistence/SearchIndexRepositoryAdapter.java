@@ -63,4 +63,9 @@ public class SearchIndexRepositoryAdapter implements SearchIndexRepository {
     public void deleteAll() {
         jpaRepository.deleteAll();
     }
+
+    @Override
+    public void deleteAllByRefTable(String refTable) {
+        jpaRepository.deleteAllByRefTable(refTable);
+    }
 }

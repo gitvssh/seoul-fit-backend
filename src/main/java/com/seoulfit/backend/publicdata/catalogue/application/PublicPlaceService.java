@@ -48,6 +48,7 @@ public class PublicPlaceService {
                 Math.max(page, 0),
                 Math.min(Math.max(size, 1), MAX_PAGE_SIZE),
                 Sort.by(Sort.Direction.ASC, "name")
+                        .and(Sort.by(Sort.Direction.ASC, "refId"))
         );
         Page<PoiSearchIndex> places = searchIndexRepository.findByRefTable(category.getRefTable(), pageable);
 

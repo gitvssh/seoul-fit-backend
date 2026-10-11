@@ -7,6 +7,13 @@ import com.seoulfit.backend.search.application.port.out.PublicDataQueryPort;
 import com.seoulfit.backend.search.application.port.out.SearchIndexRepository;
 import com.seoulfit.backend.search.domain.PoiSearchIndex;
 import com.seoulfit.backend.search.infrastructure.mapper.PoiIndexMapper;
+
+import static com.seoulfit.backend.search.infrastructure.mapper.PoiIndexMapper.REF_TABLE_COOLING_CENTERS;
+import static com.seoulfit.backend.search.infrastructure.mapper.PoiIndexMapper.REF_TABLE_CULTURAL_EVENTS;
+import static com.seoulfit.backend.search.infrastructure.mapper.PoiIndexMapper.REF_TABLE_CULTURAL_RESERVATION;
+import static com.seoulfit.backend.search.infrastructure.mapper.PoiIndexMapper.REF_TABLE_LIBRARIES;
+import static com.seoulfit.backend.search.infrastructure.mapper.PoiIndexMapper.REF_TABLE_PARK;
+import static com.seoulfit.backend.search.infrastructure.mapper.PoiIndexMapper.REF_TABLE_RESTAURANTS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
@@ -67,6 +74,7 @@ public class SearchIndexBatchService implements SearchIndexBatchUseCase {
                 .collect(Collectors.toList());
         
         log.info("Mapped {} cooling centers to index entries", indexList.size());
+        searchIndexRepository.deleteAllByRefTable(REF_TABLE_COOLING_CENTERS);
         indexList.forEach(index -> {
             log.debug("Saving index entry: name={}, refTable={}, refId={}", 
                      index.getName(), index.getRefTable(), index.getRefId());
@@ -94,6 +102,7 @@ public class SearchIndexBatchService implements SearchIndexBatchUseCase {
                 .collect(Collectors.toList());
         
         log.info("Mapped {} cultural events to index entries", indexList.size());
+        searchIndexRepository.deleteAllByRefTable(REF_TABLE_CULTURAL_EVENTS);
         indexList.forEach(searchIndexRepository::save);
         log.info("Synced {} cultural events to POI index", indexList.size());
         return indexList.size();
@@ -117,6 +126,7 @@ public class SearchIndexBatchService implements SearchIndexBatchUseCase {
                 .collect(Collectors.toList());
         
         log.info("Mapped {} cultural reservations to index entries", indexList.size());
+        searchIndexRepository.deleteAllByRefTable(REF_TABLE_CULTURAL_RESERVATION);
         indexList.forEach(searchIndexRepository::save);
         log.info("Synced {} cultural reservations to POI index", indexList.size());
         return indexList.size();
@@ -140,6 +150,7 @@ public class SearchIndexBatchService implements SearchIndexBatchUseCase {
                 .collect(Collectors.toList());
         
         log.info("Mapped {} libraries to index entries", indexList.size());
+        searchIndexRepository.deleteAllByRefTable(REF_TABLE_LIBRARIES);
         indexList.forEach(searchIndexRepository::save);
         log.info("Synced {} libraries to POI index", indexList.size());
         return indexList.size();
@@ -163,6 +174,7 @@ public class SearchIndexBatchService implements SearchIndexBatchUseCase {
                 .collect(Collectors.toList());
         
         log.info("Mapped {} parks to index entries", indexList.size());
+        searchIndexRepository.deleteAllByRefTable(REF_TABLE_PARK);
         indexList.forEach(searchIndexRepository::save);
         log.info("Synced {} parks to POI index", indexList.size());
         return indexList.size();
@@ -186,6 +198,7 @@ public class SearchIndexBatchService implements SearchIndexBatchUseCase {
                 .collect(Collectors.toList());
         
         log.info("Mapped {} restaurants to index entries", indexList.size());
+        searchIndexRepository.deleteAllByRefTable(REF_TABLE_RESTAURANTS);
         indexList.forEach(searchIndexRepository::save);
         log.info("Synced {} restaurants to POI index", indexList.size());
         return indexList.size();

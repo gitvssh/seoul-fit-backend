@@ -9,6 +9,13 @@ import com.seoulfit.backend.publicdata.restaurant.domain.Restaurant;
 import com.seoulfit.backend.search.domain.PoiSearchIndex;
 
 public class PoiIndexMapper {
+
+    public static final String REF_TABLE_COOLING_CENTERS = "cooling_centers";
+    public static final String REF_TABLE_CULTURAL_EVENTS = "cultural_events";
+    public static final String REF_TABLE_CULTURAL_RESERVATION = "cultural_reservation";
+    public static final String REF_TABLE_LIBRARIES = "libraries";
+    public static final String REF_TABLE_PARK = "park";
+    public static final String REF_TABLE_RESTAURANTS = "restaurants";
     
     public static PoiSearchIndex fromCoolingCenter(CoolingCenter coolingCenter) {
         String address = joinWithComma(coolingCenter.getLotAddress(), coolingCenter.getRoadAddress());
@@ -19,7 +26,7 @@ public class PoiIndexMapper {
             address,
             remark,
             null,
-            "cooling_centers",
+            REF_TABLE_COOLING_CENTERS,
             coolingCenter.getId()
         );
     }
@@ -30,7 +37,7 @@ public class PoiIndexMapper {
             null,
             event.getPlace(),
             null,
-            "cultural_events",
+            REF_TABLE_CULTURAL_EVENTS,
             event.getId()
         );
     }
@@ -41,7 +48,7 @@ public class PoiIndexMapper {
             null,
             reservation.getPlaceNm(),
             null,
-            "cultural_reservation",
+            REF_TABLE_CULTURAL_RESERVATION,
             reservation.getId()
         );
     }
@@ -52,7 +59,7 @@ public class PoiIndexMapper {
             library.getAdres(),
             null,
             null,
-            "libraries",
+            REF_TABLE_LIBRARIES,
             library.getId()
         );
     }
@@ -63,7 +70,7 @@ public class PoiIndexMapper {
             park.getAddress(),
             null,
             null,
-            "park",
+            REF_TABLE_PARK,
             park.getId()
         );
     }
@@ -76,7 +83,7 @@ public class PoiIndexMapper {
             address,
             null,
             null,
-            "restaurants",
+            REF_TABLE_RESTAURANTS,
             restaurant.getId()
         );
     }

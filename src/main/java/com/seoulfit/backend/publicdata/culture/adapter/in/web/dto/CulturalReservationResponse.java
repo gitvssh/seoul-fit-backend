@@ -56,6 +56,12 @@ public class CulturalReservationResponse {
     @Schema(description = "Y좌표", example = "37.5665")
     private String y;
 
+    @Schema(description = "위도(y 좌표를 숫자로)", example = "37.5665")
+    private Double latitude;
+
+    @Schema(description = "경도(x 좌표를 숫자로)", example = "126.9780")
+    private Double longitude;
+
     @Schema(description = "서비스개시시작일시", example = "2025-08-15T10:00:00")
     private LocalDateTime svcOpnBgnDt;
 
@@ -110,6 +116,8 @@ public class CulturalReservationResponse {
                 .svcUrl(reservation.getSvcUrl())
                 .x(reservation.getX())
                 .y(reservation.getY())
+                .latitude(parseCoordinate(reservation.getY()))
+                .longitude(parseCoordinate(reservation.getX()))
                 .svcOpnBgnDt(reservation.getSvcOpnBgnDt())
                 .svcOpnEndDt(reservation.getSvcOpnEndDt())
                 .rcptBgnDt(reservation.getRcptBgnDt())
@@ -132,5 +140,16 @@ public class CulturalReservationResponse {
         return reservations.stream()
                 .map(CulturalReservationResponse::from)
                 .collect(Collectors.toList());
+    }
+
+    private static Double parseCoordinate(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Double.parseDouble(value.trim());
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 }

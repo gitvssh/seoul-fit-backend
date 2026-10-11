@@ -95,6 +95,9 @@ public class CulturalReservationController {
             
             log.info("근처 문화행사 예약 정보 {} 개 조회 완료", response.size());
             return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            log.warn("근처 문화행사 예약 정보 조회 요청 파라미터 오류: {}", e.getMessage());
+            return ResponseEntity.badRequest().build();
         } catch (Exception e) {
             log.error("근처 문화행사 예약 정보 조회 중 오류 발생", e);
             return ResponseEntity.internalServerError().build();

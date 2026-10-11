@@ -26,4 +26,6 @@ public interface SearchIndexRepository {
     void deleteByRefTableAndRefId(String refTable, Long refId);
     
     void deleteAll();
+
+    void deleteAllByRefTable(String refTable);
 }

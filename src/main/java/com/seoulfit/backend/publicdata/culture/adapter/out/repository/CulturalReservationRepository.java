@@ -5,23 +5,25 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 public interface CulturalReservationRepository extends JpaRepository<CulturalReservation, Long> {
 
     @Query(value = """
             SELECT * FROM cultural_reservation cr
-            WHERE cr.x_coord IS NOT NULL AND cr.y_coord IS NOT NULL 
-            AND (6371 * acos(cos(radians(:y_coord)) * cos(radians(cr.y_coord)) 
-                * cos(radians(cr.x_coord) - radians(:x_coord)) 
-                + sin(radians(:y_coord)) * sin(radians(cr.y_coord)))) <= :radiusKm
-            ORDER BY (6371 * acos(cos(radians(:y_coord)) * cos(radians(cr.y_coord)) 
-                * cos(radians(cr.x_coord) - radians(:x_coord)) 
-                + sin(radians(:y_coord)) * sin(radians(cr.y_coord))))
+            WHERE cr.x_coord IS NOT NULL AND cr.y_coord IS NOT NULL
+              AND cr.x_coord <> '' AND cr.y_coord <> ''
+              AND (6371 * acos(least(1.0, greatest(-1.0,
+                    cos(radians(:latitude)) * cos(radians(CAST(cr.y_coord AS double precision)))
+                    * cos(radians(CAST(cr.x_coord AS double precision)) - radians(:longitude))
+                    + sin(radians(:latitude)) * sin(radians(CAST(cr.y_coord AS double precision))))))) <= :radiusKm
+            ORDER BY (6371 * acos(least(1.0, greatest(-1.0,
+                    cos(radians(:latitude)) * cos(radians(CAST(cr.y_coord AS double precision)))
+                    * cos(radians(CAST(cr.x_coord AS double precision)) - radians(:longitude))
+                    + sin(radians(:latitude)) * sin(radians(CAST(cr.y_coord AS double precision)))))))
             """, nativeQuery = true)
-    List<CulturalReservation> findWithInRadius(@Param("x_coord") BigDecimal x_coord,
-                                               @Param("y_coord") BigDecimal y_coord,
+    List<CulturalReservation> findWithInRadius(@Param("latitude") double latitude,
+                                               @Param("longitude") double longitude,
                                                @Param("radiusKm") double radiusKm);
 
 }
