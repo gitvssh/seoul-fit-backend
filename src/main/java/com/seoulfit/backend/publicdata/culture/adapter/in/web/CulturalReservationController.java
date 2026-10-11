@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -95,7 +96,8 @@ public class CulturalReservationController {
             
             log.info("근처 문화행사 예약 정보 {} 개 조회 완료", response.size());
             return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | InvalidDataAccessApiUsageException e) {
+            // @Repository 어댑터가 던진 IllegalArgumentException은 Spring이 InvalidDataAccessApiUsageException으로 번역한다.
             log.warn("근처 문화행사 예약 정보 조회 요청 파라미터 오류: {}", e.getMessage());
             return ResponseEntity.badRequest().build();
         } catch (Exception e) {
