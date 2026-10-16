@@ -43,6 +43,9 @@ patches:
       - op: replace
         path: /spec/path
         value: projects/seoul-fit/backend-dev
+      - op: replace
+        path: /spec/refreshAfter
+        value: 1m
       - op: add
         path: /spec/destination/transformation/templates/SPRING_PROFILES_ACTIVE
         value:
